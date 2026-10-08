@@ -909,6 +909,11 @@
     $('#site-title').href = '#/';
     $('#site-desc').textContent = CFG.desc || '';
 
+    // 没配置令牌的访客看不到「写笔记」入口，站点更像纯阅读的知识库。
+    // 「设置」保持可见，方便作者在新设备上配置令牌。
+    var navNew = $('#nav-new');
+    if (navNew) navNew.style.display = getToken() ? '' : 'none';
+
     var footer = $('#footer-info');
     if (footer) {
       footer.innerHTML = configured()

@@ -25,6 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API = 'https://api.github.com';
 
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.vscode', '.idea']);
+// 注意：这里存的是「相对仓库根的路径」，不是单纯的文件名
 const SKIP_FILES = new Set(['.DS_Store', 'Thumbs.db', 'tools/dev-server.mjs']);
 const BINARY_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.woff', '.woff2', '.ttf', '.zip']);
 
@@ -168,7 +169,8 @@ async function collectFiles(dir, base = '') {
       if (SKIP_DIRS.has(e.name)) continue;
       out.push(...await collectFiles(path.join(dir, e.name), rel));
     } else if (e.isFile()) {
-      if (SKIP_FILES.has(e.name)) continue;
+      // 用相对路径匹配，否则 SKIP_FILES 里带目录的条目永远匹配不上
+      if (SKIP_FILES.has(rel)) continue;
       if (e.name.endsWith('.log')) continue;
       out.push(rel);
     }
