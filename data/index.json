@@ -1,15 +1,6 @@
 {
-  "generated": "2026-10-08T03:16:47.296Z",
+  "generated": "2026-10-08T03:17:32.273Z",
   "notes": [
-    {
-      "slug": "verify-image-test",
-      "title": "图片功能验证",
-      "tags": [
-        "测试"
-      ],
-      "date": "2026-10-08",
-      "summary": "用于验证图片上传与显示链路的临时笔记。"
-    },
     {
       "slug": "markdown-guide",
       "title": "Markdown 速查",
