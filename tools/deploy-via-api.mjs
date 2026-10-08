@@ -19,6 +19,7 @@ import { readdir, readFile, writeFile, stat } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { noteEntry, sortNotes, buildIndexJSON } from './lib/notes.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API = 'https://api.github.com';
@@ -115,6 +116,46 @@ async function api(method, endpoint, body) {
     throw err;
   }
   return data;
+}
+
+/* 依据线上仓库里真实的 content/*.md 重建目录清单。
+   绝不能拿本地那份去覆盖 —— 线上可能有网页编辑器新增、而本地没有的笔记。 */
+async function rebuildRemoteIndex(owner) {
+  let dir;
+  try {
+    dir = await api('GET', `/repos/${owner}/${args.repo}/contents/content?ref=${args.branch}`);
+  } catch (e) {
+    if (e.status === 404) return null;      // 还没有 content 目录
+    throw e;
+  }
+  const mds = (Array.isArray(dir) ? dir : [])
+    .filter((f) => f.type === 'file' && /\.md$/i.test(f.name));
+
+  const notes = [];
+  for (const f of mds) {
+    const raw = await rawFile(owner, f.path);
+    notes.push(noteEntry(f.name.replace(/\.md$/i, ''), raw));
+  }
+  sortNotes(notes);
+  return { json: buildIndexJSON(notes), count: notes.length };
+}
+
+async function rawFile(owner, repoRelPath) {
+  const res = await fetch(
+    `${API}/repos/${owner}/${args.repo}/contents/${encodeURI(repoRelPath)}` +
+    `?ref=${encodeURIComponent(args.branch)}&t=${Date.now()}`,
+    {
+      headers: {
+        Authorization: 'Bearer ' + args.token,
+        Accept: 'application/vnd.github.raw+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'knowledge-hub-deployer',
+      },
+      cache: 'no-store',
+    }
+  );
+  if (!res.ok) throw new Error(`读取 ${repoRelPath} 失败：HTTP ${res.status}`);
+  return res.text();
 }
 
 /* ---------------- 收集文件 ---------------- */
@@ -219,7 +260,29 @@ async function main() {
 
   /* 5. 上传文件（Git Data API） */
   step(6, '上传站点文件…');
-  const files = await collectFiles(ROOT);
+
+  // 目录清单必须按线上真实内容重建，不能用本地那份覆盖，
+  // 否则会抹掉网页编辑器新增的笔记条目。
+  const overrides = {};
+  try {
+    const rebuilt = await rebuildRemoteIndex(owner);
+    if (rebuilt) {
+      overrides['data/index.json'] = rebuilt.json;
+      console.log(`    ✓ 目录清单按线上内容重建（${rebuilt.count} 篇）`);
+    } else {
+      console.log('    · 线上还没有 content 目录，改用本地目录清单');
+    }
+  } catch (e) {
+    console.log(`    ! 重建目录清单失败（${e.message}），本次不改动线上那一份`);
+  }
+  if (overrides['data/index.json'] === undefined) {
+    const localIndex = await readFile(path.join(ROOT, 'data', 'index.json'), 'utf8').catch(() => null);
+    if (localIndex != null) overrides['data/index.json'] = localIndex;
+  }
+
+  const files = (await collectFiles(ROOT))
+    .filter((f) => f !== 'data/index.json')
+    .concat(Object.keys(overrides));
   console.log(`    共 ${files.length} 个文件`);
 
   const entries = [];
@@ -227,11 +290,16 @@ async function main() {
   for (let i = 0; i < files.length; i += CONCURRENCY) {
     const batch = files.slice(i, i + CONCURRENCY);
     const results = await Promise.all(batch.map(async (rel) => {
-      const buf = await readFile(path.join(ROOT, rel));
-      const isBinary = BINARY_EXT.has(path.extname(rel).toLowerCase());
-      const payload = isBinary
-        ? { content: buf.toString('base64'), encoding: 'base64' }
-        : { content: buf.toString('utf8'), encoding: 'utf-8' };
+      let payload;
+      if (overrides[rel] !== undefined) {
+        payload = { content: overrides[rel], encoding: 'utf-8' };
+      } else {
+        const buf = await readFile(path.join(ROOT, rel));
+        const isBinary = BINARY_EXT.has(path.extname(rel).toLowerCase());
+        payload = isBinary
+          ? { content: buf.toString('base64'), encoding: 'base64' }
+          : { content: buf.toString('utf8'), encoding: 'utf-8' };
+      }
       const blob = await api('POST', `/repos/${owner}/${args.repo}/git/blobs`, payload);
       return { path: rel, mode: '100644', type: 'blob', sha: blob.sha };
     }));

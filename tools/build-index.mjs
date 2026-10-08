@@ -11,47 +11,11 @@ import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { noteEntry, sortNotes, buildIndexJSON } from './lib/notes.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONTENT_DIR = path.join(ROOT, 'content');
 const OUT_FILE = path.join(ROOT, 'data', 'index.json');
-
-function parseFrontMatter(text) {
-  const meta = {};
-  let body = text;
-  const m = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
-  if (m) {
-    body = text.slice(m[0].length);
-    for (const line of m[1].split(/\r?\n/)) {
-      const i = line.indexOf(':');
-      if (i < 0) continue;
-      const key = line.slice(0, i).trim().toLowerCase();
-      const val = line.slice(i + 1).trim().replace(/^["']|["']$/g, '');
-      if (!key) continue;
-      if (key === 'tags' || key === 'tag') {
-        meta.tags = val.replace(/^\[|\]$/g, '')
-          .split(/[,，]/).map((t) => t.trim()).filter(Boolean);
-      } else {
-        meta[key] = val;
-      }
-    }
-  }
-  return { meta, body };
-}
-
-function makeSummary(md, len = 110) {
-  const t = String(md || '')
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`[^`]*`/g, ' ')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
-    .replace(/^\s{0,3}>\s?/gm, '')
-    .replace(/[*_~]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return t.length > len ? t.slice(0, len) + '…' : t;
-}
 
 async function main() {
   if (!existsSync(CONTENT_DIR)) {
@@ -65,18 +29,9 @@ async function main() {
   const notes = [];
   for (const file of files) {
     const raw = await readFile(path.join(CONTENT_DIR, file), 'utf8');
-    const { meta, body } = parseFrontMatter(raw);
-    const slug = file.replace(/\.md$/i, '');
-    notes.push({
-      slug,
-      title: meta.title || slug,
-      tags: meta.tags || [],
-      date: meta.date || '',
-      summary: meta.summary || makeSummary(body),
-    });
+    notes.push(noteEntry(file.replace(/\.md$/i, ''), raw));
   }
-
-  notes.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  sortNotes(notes);
 
   await mkdir(path.dirname(OUT_FILE), { recursive: true });
 
@@ -94,9 +49,7 @@ async function main() {
     } catch { /* 旧文件损坏，按下面正常重写 */ }
   }
 
-  const json = JSON.stringify({ generated: new Date().toISOString(), notes }, null, 2) + '\n';
-  await writeFile(OUT_FILE, json, 'utf8');
-
+  await writeFile(OUT_FILE, buildIndexJSON(notes), 'utf8');
   console.log(`已写入 ${path.relative(ROOT, OUT_FILE)}，共 ${notes.length} 篇：`);
   for (const n of notes) console.log('  - ' + n.slug + '  «' + n.title + '»');
 }
