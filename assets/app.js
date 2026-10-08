@@ -303,8 +303,9 @@
   /* ---------------- 图片上传 ---------------- */
   var localImages = {};                 // 文件名 -> dataURL，用于编辑器内即时预览
   var uploadChain = Promise.resolve();  // 串行化，避免并发提交互相覆盖
-  var MAX_UPLOAD = 10 * 1024 * 1024;    // 单张上限 10MB
+  var MAX_UPLOAD = 25 * 1024 * 1024;    // 单张原图上限 25MB（手机直出照片也够）
   var MAX_WIDTH = 1600;                 // 超过则等比缩小，避免仓库膨胀
+  var WEB_SAFE = { 'image/png': 1, 'image/jpeg': 1, 'image/webp': 1 };
 
   function enqueueUpload(task) {
     var run = uploadChain.then(task, task);
@@ -330,20 +331,25 @@
     });
   }
 
-  /* 宽度超过 MAX_WIDTH 就等比缩小；GIF 保持原样避免丢动画 */
+  /* 需要时等比缩小；非 Web 友好格式（如 iPhone 的 HEIC）统一转成 JPEG */
   function shrinkImage(file) {
     return fileToDataURL(file).then(function (dataURL) {
+      // GIF 保留动画，SVG 保留矢量，都原样上传
       if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
         return { dataURL: dataURL, mime: file.type };
       }
       return loadImageEl(dataURL).then(function (img) {
-        if (img.width <= MAX_WIDTH) return { dataURL: dataURL, mime: file.type };
+        var needsResize = img.width > MAX_WIDTH;
+        var needsConvert = !WEB_SAFE[file.type];
+        if (!needsResize && !needsConvert) return { dataURL: dataURL, mime: file.type };
+
+        var w = needsResize ? MAX_WIDTH : img.width;
+        var h = Math.max(1, Math.round(img.height * w / img.width));
         var cv = document.createElement('canvas');
-        cv.width = MAX_WIDTH;
-        cv.height = Math.max(1, Math.round(img.height * MAX_WIDTH / img.width));
-        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-        var keepPng = file.type === 'image/png';
-        var mime = keepPng ? 'image/png' : 'image/jpeg';
+        cv.width = w;
+        cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        var mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
         return { dataURL: cv.toDataURL(mime, 0.88), mime: mime };
       }).catch(function () {
         return { dataURL: dataURL, mime: file.type };  // 解码失败就原样上传
@@ -368,7 +374,9 @@
   /* 上传一张图片到 content/images/，成功返回 Markdown 片段 */
   function uploadImage(file) {
     if (!getToken()) return Promise.reject(new Error('请先在设置里配置访问令牌'));
-    if (file.size > MAX_UPLOAD) return Promise.reject(new Error('图片超过 10MB，请先压缩'));
+    if (file.size > MAX_UPLOAD) {
+      return Promise.reject(new Error('图片超过 ' + Math.round(MAX_UPLOAD / 1048576) + 'MB，请先压缩'));
+    }
     return shrinkImage(file).then(function (r) {
       var name = makeImageName(file, r.mime);
       var base64 = String(r.dataURL).split(',')[1];
