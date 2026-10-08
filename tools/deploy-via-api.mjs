@@ -47,15 +47,16 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv.slice(2));
 
-if (args.help || !args.token || !args.repo) {
+function printHelp() {
   console.log(`
 知识库一键部署（纯 API，不需要 git push）
 
   node tools/deploy-via-api.mjs --token <令牌> --repo <仓库名> [选项]
 
 必填：
-  --token      GitHub 令牌（classic 令牌，勾选 repo + workflow 权限）
   --repo       仓库名，例如 knowledge-hub
+  --token      GitHub 令牌（classic 令牌，勾选 repo + workflow 权限）
+               也可以改用环境变量 KB_TOKEN，或不传此参数由脚本交互式询问
 
 可选：
   --owner      仓库归属账号，默认是令牌所属用户
@@ -67,8 +68,25 @@ if (args.help || !args.token || !args.repo) {
 
 部署完成后会打印形如 https://<用户名>.github.io/<仓库名>/ 的链接。
 `);
-  process.exit(args.help ? 0 : 1);
 }
+
+async function promptToken() {
+  if (!process.stdin.isTTY) {
+    console.error('缺少令牌。请用 --token 参数，或设置环境变量 KB_TOKEN 后重试。');
+    process.exit(1);
+  }
+  const { createInterface } = await import('node:readline/promises');
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const t = (await rl.question('请粘贴 GitHub 令牌后按回车（内容会显示在屏幕上）：')).trim();
+  rl.close();
+  console.log('');
+  return t;
+}
+
+if (args.help) { printHelp(); process.exit(0); }
+if (!args.token) args.token = process.env.KB_TOKEN || '';
+if (!args.token) args.token = await promptToken();
+if (!args.token || !args.repo) { printHelp(); process.exit(1); }
 
 /* ---------------- HTTP ---------------- */
 async function api(method, endpoint, body) {

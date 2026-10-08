@@ -238,7 +238,7 @@
               return acc;
             }
             return ghFetch(repoPath('/git/blobs'), {
-              method: 'POST', body: { content: f.content, encoding: 'utf-8' }
+              method: 'POST', body: { content: f.content, encoding: f.encoding || 'utf-8' }
             }).then(function (blob) {
               acc.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
               return acc;
@@ -298,6 +298,138 @@
         { path: 'data/index.json', content: indexContent }
       ], '删除笔记：' + (note.title || note.slug) + '\n\n通过知识库在线编辑器提交');
     });
+  }
+
+  /* ---------------- 图片上传 ---------------- */
+  var localImages = {};                 // 文件名 -> dataURL，用于编辑器内即时预览
+  var uploadChain = Promise.resolve();  // 串行化，避免并发提交互相覆盖
+  var MAX_UPLOAD = 10 * 1024 * 1024;    // 单张上限 10MB
+  var MAX_WIDTH = 1600;                 // 超过则等比缩小，避免仓库膨胀
+
+  function enqueueUpload(task) {
+    var run = uploadChain.then(task, task);
+    uploadChain = run.catch(function () { });
+    return run;
+  }
+
+  function fileToDataURL(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(fr.result); };
+      fr.onerror = function () { reject(new Error('读取文件失败')); };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  function loadImageEl(src) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { reject(new Error('图片解码失败')); };
+      img.src = src;
+    });
+  }
+
+  /* 宽度超过 MAX_WIDTH 就等比缩小；GIF 保持原样避免丢动画 */
+  function shrinkImage(file) {
+    return fileToDataURL(file).then(function (dataURL) {
+      if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
+        return { dataURL: dataURL, mime: file.type };
+      }
+      return loadImageEl(dataURL).then(function (img) {
+        if (img.width <= MAX_WIDTH) return { dataURL: dataURL, mime: file.type };
+        var cv = document.createElement('canvas');
+        cv.width = MAX_WIDTH;
+        cv.height = Math.max(1, Math.round(img.height * MAX_WIDTH / img.width));
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        var keepPng = file.type === 'image/png';
+        var mime = keepPng ? 'image/png' : 'image/jpeg';
+        return { dataURL: cv.toDataURL(mime, 0.88), mime: mime };
+      }).catch(function () {
+        return { dataURL: dataURL, mime: file.type };  // 解码失败就原样上传
+      });
+    });
+  }
+
+  function makeImageName(file, mime) {
+    var ext = {
+      'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif',
+      'image/webp': 'webp', 'image/svg+xml': 'svg'
+    }[mime] || 'png';
+    var d = new Date();
+    var stamp = '' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
+      pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+    var base = String(file.name || '').replace(/\.[^.]+$/, '')
+      .replace(/[^\w\u4e00-\u9fa5-]/g, '-').replace(/-+/g, '-')
+      .replace(/^-|-$/g, '').slice(0, 32);
+    return (base ? base + '-' : 'img-') + stamp + '.' + ext;
+  }
+
+  /* 上传一张图片到 content/images/，成功返回 Markdown 片段 */
+  function uploadImage(file) {
+    if (!getToken()) return Promise.reject(new Error('请先在设置里配置访问令牌'));
+    if (file.size > MAX_UPLOAD) return Promise.reject(new Error('图片超过 10MB，请先压缩'));
+    return shrinkImage(file).then(function (r) {
+      var name = makeImageName(file, r.mime);
+      var base64 = String(r.dataURL).split(',')[1];
+      return enqueueUpload(function () {
+        return commitFiles(
+          [{ path: 'content/images/' + name, content: base64, encoding: 'base64' }],
+          '上传图片：' + name + '\n\n通过知识库在线编辑器提交'
+        );
+      }).then(function () {
+        localImages[name] = r.dataURL;
+        return '![图片](content/images/' + name + ')';
+      });
+    });
+  }
+
+  /* 把预览/正文里指向 content/images/ 的图换成已知的本地数据，即时可见 */
+  function patchLocalImages(root) {
+    var imgs = root.querySelectorAll('img');
+    for (var i = 0; i < imgs.length; i++) {
+      var src = imgs[i].getAttribute('src') || '';
+      var m = /content\/images\/([^\/?#]+)/.exec(src);
+      if (m && localImages[m[1]]) imgs[i].src = localImages[m[1]];
+    }
+  }
+
+  /* 已配令牌时，用 API 取原图渲染，刚上传的图片不必等 Pages 构建 */
+  function hydrateNoteImages(root) {
+    if (!getToken() || !CFG.owner || !CFG.repo) return;
+    var imgs = root.querySelectorAll('img');
+    for (var i = 0; i < imgs.length; i++) {
+      (function (img) {
+        var src = img.getAttribute('src') || '';
+        if (/^(https?:|data:)/i.test(src)) return;
+        var m = /content\/images\/([^\/?#]+)/.exec(src);
+        if (!m) return;
+        var name = m[1];
+        if (localImages[name]) { img.src = localImages[name]; return; }
+        fetch(API + repoPath('/contents/content/images/' + encodeURIComponent(name)) +
+          '?ref=' + encodeURIComponent(CFG.branch), {
+          headers: {
+            Authorization: 'Bearer ' + getToken(),
+            Accept: 'application/vnd.github.raw+json'
+          },
+          cache: 'no-store'
+        }).then(function (r) { return r.ok ? r.blob() : null; })
+          .then(function (b) {
+            if (!b || b.size > 6 * 1024 * 1024) return;
+            var fr = new FileReader();
+            fr.onload = function () { img.src = fr.result; localImages[name] = fr.result; };
+            fr.readAsDataURL(b);
+          }).catch(function () { });
+      })(imgs[i]);
+    }
+  }
+
+  function insertAtCursor(ta, text) {
+    var start = ta.selectionStart, end = ta.selectionEnd;
+    if (start == null) { ta.value += text; return; }
+    ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+    var pos = start + text.length;
+    try { ta.setSelectionRange(pos, pos); } catch (e) { }
   }
 
   /* ---------------- 路由 ---------------- */
@@ -456,6 +588,7 @@
         '</article>';
 
       $('#app').innerHTML = html;
+      hydrateNoteImages($('#app'));
 
       $('#copy').addEventListener('click', function () {
         copyText(noteURL(slug), '链接已复制，可以直接分享');
@@ -524,12 +657,19 @@
         '<textarea id="f-body" class="body" spellcheck="false" placeholder="在这里写 Markdown…">' + esc(note.body) + '</textarea>' +
         '<div class="preview-box" id="preview"></div>' +
         '</div>' +
+        '<div class="note" style="margin:-10px 0 14px">' +
+        '💡 图片可以直接 <strong>Ctrl+V 粘贴</strong> 或 <strong>拖拽</strong> 到左边的输入框，' +
+        '也可以点下面的「插入图片」按钮。' +
+        '</div>' +
         '<div class="actions">' +
         '<button class="btn primary" id="save">💾 保存并发布</button>' +
+        '<button class="btn" id="pick-img" type="button">📷 插入图片</button>' +
         '<a class="btn" href="' + (isNew ? '#/' : '#/n/' + encodeURIComponent(route.slug)) + '">取消</a>' +
         '<span class="spacer"></span>' +
         '<span class="count" id="stat"></span>' +
-        '</div></div>';
+        '</div>' +
+        '<input type="file" id="img-input" accept="image/*" multiple hidden>' +
+        '</div>';
 
       // 移动端把 textarea 的 min-height 调小一点
       var bodyEl = $('#f-body');
@@ -542,6 +682,7 @@
         preview.innerHTML = md.trim()
           ? renderMD(md)
           : '<p class="empty">左边输入内容，这里会实时预览。</p>';
+        patchLocalImages(preview);
         stat.textContent = md.length + ' 字符';
       }
       bodyEl.addEventListener('input', refresh);
@@ -555,6 +696,62 @@
           if (!slugTouched) slugEl.value = slugify(titleEl.value);
         });
       }
+
+      /* ---- 图片：按钮 / 粘贴 / 拖拽 ---- */
+      function handleImageFiles(files) {
+        var imgs = Array.prototype.filter.call(files || [], function (f) {
+          return /^image\//.test(f.type);
+        });
+        if (!imgs.length) return;
+        if (!getToken()) { toast('请先在设置里配置访问令牌', 'err'); return; }
+
+        imgs.forEach(function (f) {
+          var ph = '![上传中](uploading-' + Math.random().toString(36).slice(2, 8) + ')';
+          var at = bodyEl.selectionStart == null ? bodyEl.value.length : bodyEl.selectionStart;
+          var pre = (at > 0 && !/\n$/.test(bodyEl.value.slice(0, at))) ? '\n' : '';
+          insertAtCursor(bodyEl, pre + ph + '\n');
+          refresh();
+          toast('正在上传 ' + (f.name || '粘贴的图片') + ' …');
+
+          uploadImage(f).then(function (md) {
+            bodyEl.value = bodyEl.value.split(ph).join(md);
+            refresh();
+            toast('图片已插入', 'ok');
+          }).catch(function (e) {
+            bodyEl.value = bodyEl.value.split(ph)
+              .join('<!-- 图片上传失败：' + String(e.message || e).replace(/-{2,}/g, '-') + ' -->');
+            refresh();
+            toast('图片上传失败：' + e.message, 'err');
+          });
+        });
+      }
+
+      $('#pick-img').addEventListener('click', function () { $('#img-input').click(); });
+      $('#img-input').addEventListener('change', function (e) {
+        handleImageFiles(e.target.files);
+        e.target.value = '';
+      });
+      bodyEl.addEventListener('paste', function (e) {
+        var items = (e.clipboardData && e.clipboardData.items) || [];
+        var files = [];
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].kind === 'file') {
+            var f = items[i].getAsFile();
+            if (f) files.push(f);
+          }
+        }
+        if (files.length) { e.preventDefault(); handleImageFiles(files); }
+      });
+      bodyEl.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        bodyEl.classList.add('dragging');
+      });
+      bodyEl.addEventListener('dragleave', function () { bodyEl.classList.remove('dragging'); });
+      bodyEl.addEventListener('drop', function (e) {
+        e.preventDefault();
+        bodyEl.classList.remove('dragging');
+        if (e.dataTransfer && e.dataTransfer.files) handleImageFiles(e.dataTransfer.files);
+      });
 
       $('#save').addEventListener('click', function () {
         if (!getToken()) {
