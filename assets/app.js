@@ -96,6 +96,7 @@
 
   function makeSummary(md, len) {
     var t = String(md || '')
+      .replace(/<!--[\s\S]*?-->/g, ' ')
       .replace(/```[\s\S]*?```/g, ' ')
       .replace(/`[^`]*`/g, ' ')
       .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
@@ -221,7 +222,8 @@
   }
 
   /* ---------------- 写入：原子提交 ---------------- */
-  function commitFiles(files, message) {
+  function commitFiles(files, message, attempt) {
+    attempt = attempt || 1;
     var head;
     return ghFetch(repoPath('/git/ref/heads/' + encodeURIComponent(CFG.branch)))
       .then(function (ref) {
@@ -260,6 +262,16 @@
         return ghFetch(repoPath('/git/refs/heads/' + encodeURIComponent(CFG.branch)), {
           method: 'PATCH', body: { sha: commit.sha, force: false }
         });
+      })
+      .catch(function (err) {
+        /* 422 / 409：读取基点和推送提交之间分支被别的提交推进了
+           （例如 Actions 的自动提交、或多标签页同时操作）。
+           这里重新读取最新基点，把整个提交重做一遍。 */
+        if ((err.status === 422 || err.status === 409) && attempt < 4) {
+          return new Promise(function (r) { setTimeout(r, 350 * attempt); })
+            .then(function () { return commitFiles(files, message, attempt + 1); });
+        }
+        throw err;
       });
   }
 
@@ -278,38 +290,43 @@
   }
 
   function saveNote(note, isNew) {
-    var rel = 'content/' + note.slug + '.md';
-    var entry = {
-      slug: note.slug, title: note.title, tags: note.tags || [],
-      date: note.date || todayISO(), summary: note.summary || ''
-    };
-    return indexWithEntry(entry).then(function (indexContent) {
-      return commitFiles([
-        { path: rel, content: buildNote(note) },
-        { path: 'data/index.json', content: indexContent }
-      ], (isNew ? '新增笔记：' : '更新笔记：') + note.title + '\n\n通过知识库在线编辑器提交');
+    return enqueueCommit(function () {
+      var rel = 'content/' + note.slug + '.md';
+      var entry = {
+        slug: note.slug, title: note.title, tags: note.tags || [],
+        date: note.date || todayISO(), summary: note.summary || ''
+      };
+      return indexWithEntry(entry).then(function (indexContent) {
+        return commitFiles([
+          { path: rel, content: buildNote(note) },
+          { path: 'data/index.json', content: indexContent }
+        ], (isNew ? '新增笔记：' : '更新笔记：') + note.title + '\n\n通过知识库在线编辑器提交');
+      });
     });
   }
 
   function deleteNote(note) {
-    return indexWithEntry({ slug: note.slug, remove: true }).then(function (indexContent) {
-      return commitFiles([
-        { path: 'content/' + note.slug + '.md', remove: true },
-        { path: 'data/index.json', content: indexContent }
-      ], '删除笔记：' + (note.title || note.slug) + '\n\n通过知识库在线编辑器提交');
+    return enqueueCommit(function () {
+      return indexWithEntry({ slug: note.slug, remove: true }).then(function (indexContent) {
+        return commitFiles([
+          { path: 'content/' + note.slug + '.md', remove: true },
+          { path: 'data/index.json', content: indexContent }
+        ], '删除笔记：' + (note.title || note.slug) + '\n\n通过知识库在线编辑器提交');
+      });
     });
   }
 
   /* ---------------- 图片上传 ---------------- */
   var localImages = {};                 // 文件名 -> dataURL，用于编辑器内即时预览
-  var uploadChain = Promise.resolve();  // 串行化，避免并发提交互相覆盖
+  var commitChain = Promise.resolve();  // 所有写操作串行执行，避免并发提交互相踩踏
   var MAX_UPLOAD = 25 * 1024 * 1024;    // 单张原图上限 25MB（手机直出照片也够）
   var MAX_WIDTH = 1600;                 // 超过则等比缩小，避免仓库膨胀
   var WEB_SAFE = { 'image/png': 1, 'image/jpeg': 1, 'image/webp': 1 };
 
-  function enqueueUpload(task) {
-    var run = uploadChain.then(task, task);
-    uploadChain = run.catch(function () { });
+  /* 把写操作排进队列：前一个结束后才开始下一个 */
+  function enqueueCommit(task) {
+    var run = commitChain.then(task, task);
+    commitChain = run.catch(function () { });
     return run;
   }
 
@@ -380,7 +397,7 @@
     return shrinkImage(file).then(function (r) {
       var name = makeImageName(file, r.mime);
       var base64 = String(r.dataURL).split(',')[1];
-      return enqueueUpload(function () {
+      return enqueueCommit(function () {
         return commitFiles(
           [{ path: 'content/images/' + name, content: base64, encoding: 'base64' }],
           '上传图片：' + name + '\n\n通过知识库在线编辑器提交'
@@ -430,6 +447,18 @@
           }).catch(function () { });
       })(imgs[i]);
     }
+  }
+
+  /* 把 GitHub 的英文报错翻译成看得懂的话 */
+  function friendlyError(e) {
+    var m = String((e && e.message) || e || '');
+    if (/not a fast forward|422/i.test(m)) return '仓库刚好被其他操作更新了，请重试一次';
+    if (/\b401\b|bad credentials/i.test(m)) return '令牌无效或已过期，请到设置里重新填写';
+    if (/\b403\b/.test(m)) return '令牌权限不足，需要 repo 和 workflow 权限';
+    if (/\b404\b/.test(m)) return '找不到仓库或分支，请检查设置里的用户名和仓库名';
+    if (/rate limit/i.test(m)) return '操作太频繁，请等一会儿再试';
+    if (/Failed to fetch|NetworkError|network/i.test(m)) return '网络连接中断，请重试';
+    return m;
   }
 
   function insertAtCursor(ta, text) {
@@ -726,10 +755,11 @@
             refresh();
             toast('图片已插入', 'ok');
           }).catch(function (e) {
+            var msg = friendlyError(e);
             bodyEl.value = bodyEl.value.split(ph)
-              .join('<!-- 图片上传失败：' + String(e.message || e).replace(/-{2,}/g, '-') + ' -->');
+              .join('<!-- 图片上传失败：' + msg.replace(/-{2,}/g, '-') + ' -->');
             refresh();
-            toast('图片上传失败：' + e.message, 'err');
+            toast('图片上传失败：' + msg, 'err');
           });
         });
       }
@@ -789,7 +819,7 @@
         }).catch(function (e) {
           btn.disabled = false;
           btn.textContent = '💾 保存并发布';
-          toast('保存失败：' + e.message, 'err');
+          toast('保存失败：' + friendlyError(e), 'err');
         });
       });
     });
