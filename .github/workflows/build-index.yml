@@ -1,0 +1,50 @@
+name: 自动维护目录清单
+
+# 每次推送后重新扫描 content/*.md，更新 data/index.json，
+# 这样即使你是在本地用编辑器写 Markdown 再 push，列表页也能自动更新。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'content/**'
+      - 'tools/build-index.mjs'
+      - '.github/workflows/build-index.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-index
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip-index]')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 生成 data/index.json
+        run: node tools/build-index.mjs
+
+      - name: 有变化则提交
+        run: |
+          if [ -z "$(git status --porcelain data/index.json)" ]; then
+            echo "目录清单已是最新，无需提交。"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/index.json
+          git commit -m "自动更新目录清单 [skip-index]"
+          git pull --rebase --autostash origin main
+          git push origin HEAD:main

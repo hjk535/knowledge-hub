@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的知识库</title>
+<meta name="description" content="记录、整理、分享 —— 一个随时可以分享链接的知识库。">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <div class="brand">
+      <a id="site-title" href="#/">我的知识库</a>
+      <span class="sub" id="site-desc"></span>
+    </div>
+    <nav>
+      <a class="btn sm" href="#/">全部</a>
+      <a class="btn sm" href="#/new">✏️ 写笔记</a>
+      <a class="btn sm" href="#/settings">⚙️ 设置</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap" id="app">
+    <div class="loading"><span class="spinner"></span> 加载中…</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap" id="footer-info"></div>
+</footer>
+
+<div id="toast"></div>
+
+<script src="assets/vendor/marked.min.js"></script>
+<script src="assets/vendor/purify.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

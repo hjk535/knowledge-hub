@@ -1,0 +1,26 @@
+{
+  "generated": "2026-10-08T02:39:59.259Z",
+  "notes": [
+    {
+      "slug": "markdown-guide",
+      "title": "Markdown 速查",
+      "tags": [
+        "入门",
+        "Markdown",
+        "参考"
+      ],
+      "date": "2026-02-14",
+      "summary": "常用 Markdown 语法一页速查，写笔记时对照着看。"
+    },
+    {
+      "slug": "welcome",
+      "title": "欢迎使用你的知识库",
+      "tags": [
+        "入门",
+        "说明"
+      ],
+      "date": "2026-02-14",
+      "summary": "三分钟了解这个知识库怎么用、怎么分享、怎么实时更新。"
+    }
+  ]
+}

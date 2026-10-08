@@ -1,0 +1,11 @@
+# 依赖与临时文件
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# 绝不提交任何令牌
+.env
+.env.*
+*.token
+secrets.json
