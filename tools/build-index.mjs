@@ -79,6 +79,21 @@ async function main() {
   notes.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
   await mkdir(path.dirname(OUT_FILE), { recursive: true });
+
+  // 如果笔记列表没有实质变化，就保持原文件不动。
+  // 否则 generated 时间戳每次都会变，导致无意义的提交和多余的 Pages 构建。
+  const existing = await readFile(OUT_FILE, 'utf8').catch(() => null);
+  if (existing) {
+    try {
+      const old = JSON.parse(existing);
+      if (Array.isArray(old.notes) &&
+        JSON.stringify(old.notes) === JSON.stringify(notes)) {
+        console.log(`目录清单无变化，跳过写入（共 ${notes.length} 篇）`);
+        return;
+      }
+    } catch { /* 旧文件损坏，按下面正常重写 */ }
+  }
+
   const json = JSON.stringify({ generated: new Date().toISOString(), notes }, null, 2) + '\n';
   await writeFile(OUT_FILE, json, 'utf8');
 

@@ -7,7 +7,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'content/**'
+      # 只在「笔记」变动时触发。用 content/*.md 而不是 content/**，
+      # 避免上传图片（content/images/）也触发一次多余构建。
+      - 'content/*.md'
       - 'tools/build-index.mjs'
       - '.github/workflows/build-index.yml'
   workflow_dispatch:
