@@ -7,11 +7,14 @@
 
 ## 它长什么样
 
-- **首页**：卡片列表 + 全文搜索 + 标签筛选
-- **阅读页**：Markdown 渲染（表格、代码块、引用、任务清单都支持）
-- **写笔记**：网页内编辑器，左边写 Markdown 右边实时预览
-- **插入图片**：`Ctrl+V` 粘贴、拖拽、或点「📷 插入图片」按钮，图片自动上传到仓库
-- **设置页**：填仓库信息和访问令牌
+- **主链接**：根目录 `index.html`，默认是一张欢迎页（可换成你自己的 HTML）
+- **知识库**（`/kb.html`）：
+  - **首页**：卡片列表 + 全文搜索 + 标签筛选
+  - **阅读页**：Markdown 渲染（表格、代码块、引用、任务清单都支持）
+  - **写笔记**：网页内编辑器，左边写 Markdown 右边实时预览
+  - **插入图片**：`Ctrl+V` 粘贴、拖拽、或点「📷 插入图片」按钮，图片自动上传到仓库
+  - **HTML 页面**：上传任意 `.html` 文件到仓库，一键设为主页
+  - **设置页**：填仓库信息和访问令牌
 
 站点没有任何构建步骤 —— 纯 HTML + CSS + JS。改完文件刷新浏览器就是最新效果，
 不存在「构建失败」这种问题。
@@ -22,19 +25,23 @@
 
 ```
 knowledge-hub/
-├── index.html                  站点入口（单页应用）
+├── index.html                  ⭐ 主链接显示的页面（默认「我的主页」，可被上传的 HTML 覆盖）
+├── kb.html                     知识库入口 —— 网址 /kb.html
+├── demo.html                   HTML 页面示例（可删）
 ├── assets/
-│   ├── app.js                  全部逻辑：路由、渲染、GitHub 读写
+│   ├── app.js                  知识库全部逻辑：路由、渲染、GitHub 读写、图片与 HTML 上传
 │   ├── style.css               样式（自动适配深色模式）
 │   ├── config.js               站点配置（部署脚本会填 owner/repo）
 │   └── vendor/
 │       ├── marked.min.js       Markdown 解析（本地内置，不依赖 CDN）
 │       └── purify.min.js       HTML 净化，防 XSS
 ├── content/                    所有笔记，一篇一个 .md 文件
+│   ├── images/                 笔记里粘贴上传的图片
 │   ├── welcome.md
 │   └── markdown-guide.md
 ├── data/index.json             目录清单，由脚本或编辑器自动维护
 ├── tools/
+│   ├── lib/notes.mjs           front matter 解析等公共逻辑
 │   ├── build-index.mjs         扫描 content/ 重新生成清单
 │   ├── deploy-via-api.mjs      一键部署到 GitHub Pages（纯 API）
 │   ├── check-github.mjs        检查 GitHub 网络连通性
@@ -42,6 +49,19 @@ knowledge-hub/
 └── .github/workflows/
     └── build-index.yml         推送后自动更新目录清单
 ```
+
+## 网址结构
+
+| 网址 | 内容 |
+| --- | --- |
+| `https://<用户名>.github.io/<仓库名>/` | **主链接** —— 显示根目录的 `index.html` |
+| `https://<用户名>.github.io/<仓库名>/kb.html` | 知识库（写笔记、看笔记） |
+| `https://<用户名>.github.io/<仓库名>/任意文件名.html` | 你上传的任意 HTML 页面 |
+
+**想换掉主链接显示的内容？** 进入知识库 → 顶部 **🧩 HTML 页面** → 上传 `.html` → 点「设为主页」。
+
+> 部署脚本会识别 `index.html` 里的 `kb-starter` 标记：标记还在说明是系统默认页，可以更新；
+> 一旦你设了自己的主页，标记消失，**部署脚本从此不再覆盖它**（除非显式加 `--force-index`）。
 
 ---
 
@@ -105,6 +125,32 @@ https://<你的用户名>.github.io/knowledge-hub/
 
 点右上角 **⚙️ 设置**，填入用户名、仓库名、令牌，保存。
 之后就能点 **✏️ 写笔记** 在网页里直接写了，保存即上线。
+
+---
+
+## 发布 HTML 页面
+
+GitHub Pages 会把仓库里**每一个** `.html` 文件变成一个网址。所以发布 HTML 有三种方式：
+
+### 方式一：在网页里上传（推荐）
+
+1. 打开 `https://<用户名>.github.io/<仓库名>/kb.html`
+2. 顶部点 **🧩 HTML 页面**
+3. 点 **📤 上传 HTML 文件**，选你的 `.html`
+4. 上传完会出现在列表里，可以「打开」「复制链接」「设为主页」「删除」
+
+上传后的地址规律：文件名 `作业1.html` → `…/knowledge-hub/作业1.html`
+
+### 方式二：GitHub 网页版
+
+打开 `https://github.com/<用户名>/<仓库名>/upload/main`，把文件拖进去，提交即可。
+
+### 方式三：本地放文件 + 部署
+
+把 `.html` 放到项目根目录，然后跑 `node tools/deploy-via-api.mjs --repo <仓库名>`。
+
+> ⚠️ **注意**：`index.html` 是主链接，部署脚本默认**不会覆盖**你已设为主页的版本。
+> 确实需要强制覆盖时才加 `--force-index`。
 
 ---
 
