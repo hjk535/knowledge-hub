@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>EOF 方法 · 动画素材</title>
+<style>
+  html,body{margin:0;background:#0e1117;overflow:hidden}
+  canvas{display:block}
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<script>
+/* ============================================================
+   EOF 方法 · 30 秒动画（3b1b 风格：深底 / 暖冷色 / 平滑运动）
+   确定性渲染：给定 t（秒）即可画出该时刻画面，方便逐帧导出。
+   ============================================================ */
+const CV = document.getElementById('c');
+const X = CV.getContext('2d');
+const W = 1280, H = 720;
+
+const BG = '#0e1117';
+const INK = '#e6edf3';
+const DIM = '#8b98a8';
+const WARM = '#ff8a3d';
+const COOL = '#3da5ff';
+const GRID = 'rgba(255,255,255,.06)';
+
+/* 关键色（3b1b 的蓝 / 黄） */
+const B1 = '#5b9dff', B2 = '#ffd166';
+
+const FONT = '-apple-system, "Segoe UI", "Microsoft YaHei", sans-serif';
+
+/* ---------- 缓动 ---------- */
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = (t) => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+function seg(t, t0, d) { return clamp((t - t0) / d, 0, 1); }        // 线性段
+function segE(t, t0, d) { return ease(seg(t, t0, d)); }              // 缓动段
+
+/* ---------- 配色：距平 -> 颜色 ---------- */
+function anomalyColor(v) {          // v: -1..1
+  const s = clamp(v, -1, 1);
+  if (s >= 0) {
+    const k = Math.pow(s, .75);
+    return `rgb(${Math.round(20 + 235 * k)},${Math.round(30 + 108 * k)},${Math.round(45 + 16 * k)})`;
+  }
+  const k = Math.pow(-s, .75);
+  return `rgb(${Math.round(20 + 41 * k)},${Math.round(30 + 135 * k)},${Math.round(45 + 210 * k)})`;
+}
+
+/* ---------- 合成一个「热带太平洋 SST 距平场」 ---------- */
+/* 空间型 1：东西向跷跷板（ENSO 型）；空间型 2/3：更细的结构 */
+const NX = 34, NY = 14;
+function eofPattern(k, i, j) {
+  const x = i / (NX - 1);            // 0=西 1=东
+  const y = j / (NY - 1);            // 0=北 1=南
+  const yc = Math.exp(-Math.pow((y - .5) / .45, 2));
+  if (k === 0) return Math.tanh((x - .55) * 3.2) * yc;              // EOF1
+  if (k === 1) return Math.sin(Math.PI * 1.5 * x) * yc * .8;         // EOF2
+  return Math.cos(Math.PI * 2.2 * x) * yc * .6;                      // EOF3
+}
+/* 时间系数：PC1 用两次超强厄尔尼诺的节律 */
+function pc(k, t) {
+  if (k === 0) return Math.sin(2 * Math.PI * t / 4.2) * (1 + .45 * Math.sin(2 * Math.PI * t / 12));
+  if (k === 1) return Math.sin(2 * Math.PI * t / 2.6 + 1.1) * .55;
+  return Math.sin(2 * Math.PI * t / 1.7 + 2.2) * .35;
+}
+
+/* ---------- 通用绘制件 ---------- */
+function text(str, x, y, { size = 26, color = INK, weight = 500, align = 'left', alpha = 1, mono = false } = {}) {
+  X.save();
+  X.globalAlpha = alpha;
+  X.fillStyle = color;
+  X.textAlign = align;
+  X.textBaseline = 'middle';
+  X.font = `${weight} ${size}px ${mono ? 'ui-monospace, Consolas, monospace' : FONT}`;
+  X.fillText(str, x, y);
+  X.restore();
+}
+function line(x1, y1, x2, y2, color = GRID, w = 1) {
+  X.save(); X.strokeStyle = color; X.lineWidth = w;
+  X.beginPath(); X.moveTo(x1, y1); X.lineTo(x2, y2); X.stroke(); X.restore();
+}
+function arrow(x1, y1, x2, y2, color, w = 2) {
+  X.save(); X.strokeStyle = color; X.fillStyle = color; X.lineWidth = w;
+  X.beginPath(); X.moveTo(x1, y1); X.lineTo(x2, y2); X.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1), s = 9;
+  X.beginPath();
+  X.moveTo(x2, y2);
+  X.lineTo(x2 - s * Math.cos(a - .4), y2 - s * Math.sin(a - .4));
+  X.lineTo(x2 - s * Math.cos(a + .4), y2 - s * Math.sin(a + .4));
+  X.closePath(); X.fill(); X.restore();
+}
+/* 背景网格 */
+function grid(pad, gap, alpha = 1) {
+  X.save(); X.globalAlpha = alpha;
+  for (let x = pad; x <= W - pad; x += gap) line(x, pad * .6, x, H - pad * .6);
+  for (let y = pad * .6; y <= H - pad * .6; y += gap) line(pad, y, W - pad, y);
+  X.restore();
+}
+/* 小标题（左上角眉标） */
+function kicker(str) {
+  text(str, 64, 56, { size: 15, color: DIM, weight: 600, mono: true });
+}
+
+/* ---------- 热力图：把场画成一块块方格 ---------- */
+function heatmap(cx, cy, w, h, fields, reveal = 1) {
+  const cw = w / NX, ch = h / NY;
+  const lastCol = Math.floor(NX * reveal);
+  for (let i = 0; i < NX; i++) {
+    for (let j = 0; j < NY; j++) {
+      if (i > lastCol) continue;
+      const v = fields(i, j);
+      X.fillStyle = anomalyColor(v);
+      X.fillRect(cx + i * cw, cy + j * ch, cw + .5, ch + .5);
+    }
+  }
+  // 显示到一半的列做渐变收边
+  if (reveal < 1) {
+    X.save();
+    X.globalAlpha = 1 - (NX * reveal - lastCol);
+    X.fillStyle = BG;
+    X.fillRect(cx + (lastCol + 1) * cw, cy, (NX - lastCol - 1) * cw, h);
+    X.restore();
+    line(cx + (lastCol + 1) * cw, cy, cx + (lastCol + 1) * cw, cy + h, 'rgba(255,255,255,.35)', 2);
+  }
+  X.save();
+  X.strokeStyle = 'rgba(255,255,255,.18)'; X.lineWidth = 1;
+  X.strokeRect(cx, cy, w, h); X.restore();
+}
+
+/* ---------- 折线图 ---------- */
+function plotSeries(cx, cy, w, h, f, color, reveal = 1, lw = 3, dash = false) {
+  X.save();
+  X.beginPath();
+  const n = 200;
+  const lim = Math.floor(n * reveal);
+  for (let i = 0; i <= lim; i++) {
+    const u = i / n;
+    const x = cx + u * w;
+    const y = cy + h / 2 - clamp(f(u), -1.25, 1.25) * (h / 2) / 1.25;
+    i ? X.lineTo(x, y) : X.moveTo(x, y);
+  }
+  X.strokeStyle = color; X.lineWidth = lw;
+  if (dash) X.setLineDash([7, 6]);
+  X.lineJoin = 'round'; X.lineCap = 'round';
+  X.stroke();
+  X.restore();
+}
+
+/* ============================================================
+   分镜
+   ============================================================ */
+const SCENES = [
+  { id: 'q',    dur: 5.5 },   // 提问：海温场太复杂
+  { id: 'idea', dur: 6.5 },   // 拆成 空间型 × 时间系数
+  { id: 'svd',  dur: 7.0 },   // 数学：矩阵分解
+  { id: 'spec', dur: 5.5 },   // 方差谱：第一模态占大头
+  { id: 'enso', dur: 5.5 },   // 落点：EOF1 就是 ENSO
+];
+const TOTAL = SCENES.reduce((s, x) => s + x.dur, 0);   // = 30s
+
+function sceneAt(t) {
+  let acc = 0;
+  for (const s of SCENES) {
+    if (t < acc + s.dur) return { id: s.id, local: t - acc, dur: s.dur };
+    acc += s.dur;
+  }
+  return { id: 'enso', local: SCENES[4].dur, dur: SCENES[4].dur };
+}
+
+function draw(t) {
+  X.fillStyle = BG; X.fillRect(0, 0, W, H);
+  const sc = sceneAt(t);
+  const u = clamp(sc.local / sc.dur, 0, 1);
+
+  if (sc.id === 'q') {
+    kicker('01 / 问题');
+    const g = segE(sc.local, .2, 1.4);
+    text('海温场，每一格都在变', 64, 132, { size: 46, weight: 700, alpha: g });
+    text('热带太平洋 · 每月一张图 · 几十年', 64, 180, { size: 20, color: DIM, alpha: g });
+
+    const boxX = 64, boxY = 236, boxW = W - 128, boxH = 380;
+    heatmap(boxX, boxY, boxW, boxH, (i, j) => {
+      const tt = clamp(sc.local * 1.1, 0, 12);
+      return .55 * eofPattern(0, i, j) * pc(0, tt)
+           + .30 * eofPattern(1, i, j) * pc(1, tt)
+           + .22 * eofPattern(2, i, j) * pc(2, tt);
+    }, segE(sc.local, .3, 1.4));
+
+    const fade = seg(sc.local, 3.9, 1.3);
+    text('数据量太大，看不出主线', 64, 656, { size: 26, color: B2, alpha: fade, weight: 600 });
+  }
+
+  else if (sc.id === 'idea') {
+    kicker('02 / 想法');
+    const g = segE(sc.local, .1, 1.2);
+    text('把它拆成：空间型 × 时间系数', 64, 116, { size: 40, weight: 700, alpha: g });
+
+    const r1 = segE(sc.local, .6, 1.3);   // 场出现
+    const r2 = segE(sc.local, 2.2, 1.2);  // 分成两半
+    const tt = clamp(sc.local * .9, 0, 10);
+
+    // 左：原场
+    const aX = 64, aY = 220, aW = 340, aH = 250;
+    heatmap(aX, aY, aW, aH, (i, j) => .7 * eofPattern(0, i, j) * pc(0, tt) + .3 * eofPattern(1, i, j) * pc(1, tt), r1);
+    text('原始场', aX, aY + aH + 34, { size: 19, color: DIM });
+    text('X(t, x)', aX + aW, aY + aH + 34, { size: 19, color: DIM, align: 'right', mono: true });
+
+    // 乘号
+    X.save(); X.globalAlpha = r2;
+    text('=', aX + aW + 30, aY + aH / 2, { size: 40, color: DIM, align: 'center' });
+    X.restore();
+
+    // 中：空间型
+    const bX = aX + aW + 76, bY = aY, bW = 300, bH = 250;
+    heatmap(bX, bY, bW, bH, (i, j) => eofPattern(0, i, j), r2);
+    text('空间型', bX, bY + bH + 34, { size: 19, color: B1, alpha: r2 });
+    text('EOF₁(x)', bX + bW, bY + bH + 34, { size: 19, color: B1, align: 'right', alpha: r2, mono: true });
+
+    // 乘号
+    X.save(); X.globalAlpha = r2;
+    text('×', bX + bW + 30, bY + bH / 2, { size: 40, color: DIM, align: 'center' });
+    X.restore();
+
+    // 右：时间系数
+    const cX = bX + bW + 76, cY = aY, cW = W - 64 - (bX + bW + 76), cH = 250;
+    X.save();
+    X.strokeStyle = 'rgba(255,255,255,.14)'; X.lineWidth = 1;
+    X.strokeRect(cX, cY, cW, cH);
+    line(cX, cY + cH / 2, cX + cW, cY + cH / 2, 'rgba(255,255,255,.14)');
+    X.restore();
+    plotSeries(cX + 10, cY + 12, cW - 20, cH - 24, (uu) => pc(0, uu * 10), B2, r2, 3);
+    text('时间系数', cX, cY + cH + 34, { size: 19, color: B2, alpha: r2 });
+    text('PC₁(t)', cX + cW, cY + cH + 34, { size: 19, color: B2, align: 'right', alpha: r2, mono: true });
+
+    const f = seg(sc.local, 4.6, 1.4);
+    text('同一套空间型，配上不断变化的时间系数，就能重建整段历史', 64, 630, { size: 22, color: DIM, alpha: f });
+  }
+
+  else if (sc.id === 'svd') {
+    kicker('03 / 怎么做');
+    const g = segE(sc.local, .1, 1.2);
+    text('对距平矩阵做奇异值分解', 64, 116, { size: 40, weight: 700, alpha: g });
+
+    // 公式块（整块居中偏上，避免和右侧步骤重叠）
+    const f1 = segE(sc.local, 1.0, 1.3);
+    X.save(); X.globalAlpha = f1;
+    text('X  =  U  Σ  Vᵀ', 640, 220, { size: 52, weight: 700, align: 'center', mono: true, color: INK });
+    X.restore();
+
+    const f2 = segE(sc.local, 2.2, 1.2);
+    X.save(); X.globalAlpha = f2;
+    const labels = [
+      ['X', 'T×N 距平（T 个月，N 个格点）'],
+      ['U', '时间：主成分 PC'],
+      ['Σ', '奇异值 → 方差贡献'],
+      ['Vᵀ', '空间：模态 EOF'],
+    ];
+    labels.forEach(([k, d], i) => {
+      const y = 330 + i * 56;
+      text(k, 460, y, { size: 26, color: B1, weight: 700, align: 'right', mono: true });
+      text(d, 490, y, { size: 21, color: DIM });
+    });
+    X.restore();
+
+    // 三个前置步骤（右侧，独立一列）
+    const f3 = segE(sc.local, 4.2, 1.4);
+    X.save(); X.globalAlpha = f3;
+    const steps = ['减去气候态 → 距平', '减去逐格点趋势', '格点乘 √cos φ（面积加权）'];
+    text('预处理', 852, 300, { size: 17, color: DIM, weight: 600, mono: true });
+    steps.forEach((s, i) => {
+      const y = 344 + i * 48;
+      X.fillStyle = 'rgba(255,255,255,.05)';
+      X.fillRect(840, y - 19, 376, 38);
+      text((i + 1) + '', 862, y, { size: 18, color: B2, weight: 700, mono: true });
+      text(s, 892, y, { size: 18, color: INK });
+    });
+    X.restore();
+
+    const f4 = seg(sc.local, 5.6, 1.3);
+    text('这一步在页面里是现场算的：1,626 个海洋格点', 64, 640, { size: 24, color: B2, alpha: f4, weight: 600 });
+  }
+
+  else if (sc.id === 'spec') {
+    kicker('04 / 结果');
+    const g = segE(sc.local, .1, 1.2);
+    text('第一模态就占了快一半的方差', 64, 116, { size: 40, weight: 700, alpha: g });
+
+    const vars = [43.4, 14.0, 8.9, 6.1, 4.8, 4.0, 3.6, 3.3];   // 累计 88.1%
+    const bx = 120, by = 560, bw = W - 240, bh = 330;
+    line(bx, by, bx + bw, by, 'rgba(255,255,255,.25)', 1.5);
+
+    vars.forEach((v, i) => {
+      const t0 = .7 + i * .28;
+      const k = segE(sc.local, t0, .7);
+      if (k <= 0) return;
+      const w = bw / vars.length - 16;
+      const x = bx + i * (bw / vars.length) + 8;
+      const h = (v / 50) * bh * k;
+      X.save();
+      X.globalAlpha = .55 + .45 * (i === 0 ? 1 : 0);
+      X.fillStyle = i === 0 ? B2 : 'rgba(91,157,255,.75)';
+      X.fillRect(x, by - h, w, h);
+      X.restore();
+      text(v.toFixed(1) + '%', x + w / 2, by - h - 22, {
+        size: i === 0 ? 22 : 17, color: i === 0 ? B2 : DIM, align: 'center', weight: i === 0 ? 700 : 500,
+      });
+      text('EOF' + (i + 1), x + w / 2, by + 26, { size: 16, color: DIM, align: 'center', mono: true });
+    });
+
+    const f = seg(sc.local, 3.4, 1.3);
+    X.save(); X.globalAlpha = f;
+    text('前 8 个模态累计 88.1%', 640, 220, { size: 30, color: B2, align: 'center', weight: 700 });
+    X.restore();
+  }
+
+  else {
+    kicker('05 / 意义');
+    const g = segE(sc.local, .1, 1.2);
+    text('这个模态，就是厄尔尼诺', 64, 116, { size: 40, weight: 700, alpha: g });
+
+    // 左：EOF1 空间型（大图）
+    const aX = 64, aY = 216, aW = 560, aH = 300;
+    heatmap(aX, aY, aW, aH, (i, j) => eofPattern(0, i, j), segE(sc.local, .4, 1.2));
+    text('EOF₁ 空间型 · 东西向跷跷板', aX, aY + aH + 36, { size: 20, color: B1 });
+    arrow(aX + 40, aY + aH + 76, aX + 200, aY + aH + 76, COOL, 2);
+    text('西太平洋偏暖', aX + 216, aY + aH + 76, { size: 17, color: DIM });
+    arrow(aX + 340, aY + aH + 76, aX + 480, aY + aH + 76, WARM, 2);
+    text('中东太平洋偏冷', aX + 200, aY + aH + 112, { size: 17, color: DIM });
+
+    // 右：PC1 与 Niño3.4
+    const cX = 680, cY = 240, cW = 536, cH = 250;
+    X.save();
+    X.strokeStyle = 'rgba(255,255,255,.14)';
+    X.strokeRect(cX, cY, cW, cH);
+    line(cX, cY + cH / 2, cX + cW, cY + cH / 2, 'rgba(255,255,255,.14)');
+    X.restore();
+    const rP = segE(sc.local, 1.4, 1.4);
+    plotSeries(cX + 10, cY + 12, cW - 20, cH - 24, (uu) => pc(0, uu * 10), B2, rP, 3);
+    plotSeries(cX + 10, cY + 12, cW - 20, cH - 24, (uu) => pc(0, uu * 10) * .92 + .06 * Math.sin(uu * 40), B1, segE(sc.local, 2.4, 1.4), 2.5, true);
+    text('PC₁（标准化）', cX + 14, cY + 28, { size: 17, color: B2, alpha: rP });
+    text('Niño3.4 指数', cX + 14, cY + 52, { size: 17, color: B1, alpha: segE(sc.local, 2.4, 1.4) });
+
+    const f = seg(sc.local, 3.6, 1.4);
+    text('两者相关系数约 0.94 —— 一个统计模态，对应一个真实的海洋过程', 640, 646, {
+      size: 23, color: B2, align: 'center', alpha: f, weight: 600,
+    });
+  }
+
+  /* 统一的轻微暗角，避免画面太平 */
+  const vg = X.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, H * 1.05);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,.35)');
+  X.fillStyle = vg; X.fillRect(0, 0, W, H);
+}
+
+/* 帧驱动：window.__frame(t) 由导出脚本调用；本地打开则自动播放 */
+window.__TOTAL = TOTAL;
+window.__frame = (t) => { draw(clamp(t, 0, TOTAL - 0.0001)); };
+window.__ready = true;
+
+(function autoplay() {
+  const t0 = performance.now();
+  (function loop(now) {
+    const t = ((now - t0) / 1000) % TOTAL;
+    draw(t);
+    requestAnimationFrame(loop);
+  })(t0);
+})();
+</script>
+</body>
+</html>

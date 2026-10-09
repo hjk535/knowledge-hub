@@ -296,9 +296,11 @@ async function main() {
     // （部署只会上传/覆盖，不会自动删远端文件，所以删除必须显式声明）
     const removedList = (localLib && localLib.site && localLib.site.removed) || [];
     const removedSet = new Set(removedList);
-    if (removedSet.size) {
+    // 按 id 删除条目（用于「下架某篇内容，但保留它的源文件」的情形）
+    const removedIds = new Set((localLib && localLib.site && localLib.site.removedItems) || []);
+    if (removedSet.size || removedIds.size) {
       const before = remote.items.length;
-      remote.items = remote.items.filter((it) => !removedSet.has(it.path));
+      remote.items = remote.items.filter((it) => !removedSet.has(it.path) && !removedIds.has(it.id));
       const dropped = before - remote.items.length;
       if (dropped) console.log(`    - 移除条目 ${dropped} 个`);
     }

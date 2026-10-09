@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-09T08:04:41.775Z",
+  "generated": "2026-10-09T08:29:39.164Z",
   "site": {
     "title": "hjkd 物理海洋知识库",
     "desc": "物理海洋观测与知识整理。EOF 分解、海表热收支——用可复现的数据把每一个现象讲清楚，而不是只给结论。",
@@ -7,27 +7,26 @@
     "tickets": [
       {
         "no": 1,
-        "title": "出门票 1",
-        "desc": "把作业或作品放这里，可以配一张图。"
+        "title": "出门票 1"
       },
       {
         "no": 2,
-        "title": "出门票 2",
-        "desc": "把作业或作品放这里，可以配一张图。"
+        "title": "出门票 2"
       },
       {
         "no": 3,
-        "title": "出门票 3",
-        "desc": "把作业或作品放这里，可以配一张图。"
+        "title": "出门票 3"
       }
     ],
     "featured": [
-      "eof",
-      "markdown-guide"
+      "eof"
     ],
     "removed": [
       "content/videos/eof-explained.mp4",
       "content/videos/eof-explained.jpg"
+    ],
+    "removedItems": [
+      "markdown-guide"
     ]
   },
   "items": [
@@ -41,6 +40,20 @@
       "path": "content/pages/eof.html"
     },
     {
+      "id": "eof-explained",
+      "type": "video",
+      "title": "EOF 主成分分析 · 30 秒动画讲解",
+      "date": "2026-10-09",
+      "tags": [
+        "EOF",
+        "动画"
+      ],
+      "summary": "30 秒看懂 EOF：从「海温场每一格都在变」，到拆成空间型 × 时间系数，再到第一模态就是厄尔尼诺。",
+      "path": "content/videos/eof-explained.mp4",
+      "cover": "content/videos/eof-explained.jpg",
+      "pin": 2
+    },
+    {
       "id": "九题分享",
       "type": "note",
       "title": "九题分享",
@@ -51,17 +64,6 @@
       "summary": "",
       "path": "content/九题分享.md",
       "cover": "content/images/answer_02_mixed_layer-20261008112029.jpg"
-    },
-    {
-      "id": "markdown-guide",
-      "type": "note",
-      "title": "Markdown 语法",
-      "date": "2026-02-14",
-      "tags": [
-        "参考"
-      ],
-      "summary": "文本 标题 列表 引用 链接与图片 代码块 用三个反引号包起来，开头写上语言名可以着色： 表格 分隔线",
-      "path": "content/markdown-guide.md"
     }
   ]
 }
