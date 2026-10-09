@@ -154,7 +154,7 @@ async function rebuildRemoteLibrary(owner) {
 
   const items = reconcile(prev && prev.items, files);
   const site = (prev && prev.site) || {};
-  return { json: buildLibraryJSON(site, items), count: items.length };
+  return { items, site, json: buildLibraryJSON(site, items), count: items.length };
 }
 
 /* ---------------- 文件收集 ---------------- */
@@ -234,19 +234,34 @@ async function main() {
   console.log(`    ✓ ${owner}/${args.repo}`);
 
   step(6, '上传站点文件…');
+  const localFiles = (await collectFiles(ROOT)).filter((f) => f !== 'data/library.json');
+
   const overrides = {};
+  let remote = null;
   try {
-    const lib = await rebuildRemoteLibrary(owner);
-    if (lib) {
-      overrides['data/library.json'] = lib.json;
-      console.log(`    ✓ 素材库按线上内容重建（${lib.count} 项）`);
-    } else {
-      console.log('    · 线上还没有内容');
-    }
+    remote = await rebuildRemoteLibrary(owner);
+    if (remote) console.log(`    ✓ 素材库按线上内容重建（${remote.count} 项）`);
+    else console.log('    · 线上还没有内容');
   } catch (e) {
     console.log(`    ! 重建素材库失败（${e.message}），本次不改动线上那一份`);
   }
-  if (overrides['data/library.json'] === undefined) {
+
+  if (remote) {
+    // 本地新增、线上还没有的条目（例如刚写好的 HTML 页面）要补进去
+    const localLib = await readFile(path.join(ROOT, 'data', 'library.json'), 'utf8')
+      .then((s) => JSON.parse(s)).catch(() => null);
+    if (localLib && Array.isArray(localLib.items)) {
+      const have = new Set(remote.items.map((i) => i.path));
+      let added = 0;
+      for (const it of localLib.items) {
+        if (it.path && localFiles.indexOf(it.path) >= 0 && !have.has(it.path)) {
+          remote.items.push(it); have.add(it.path); added++;
+        }
+      }
+      if (added) console.log(`    + 补充本地新增条目 ${added} 个`);
+    }
+    overrides['data/library.json'] = buildLibraryJSON(remote.site, remote.items);
+  } else {
     const local = await readFile(path.join(ROOT, 'data', 'library.json'), 'utf8').catch(() => null);
     if (local != null) overrides['data/library.json'] = local;
   }
@@ -256,9 +271,7 @@ async function main() {
   const remotePaths = new Set((remoteTree.tree || []).map((n) => n.path));
   const removals = LEGACY_FILES.filter((p) => remotePaths.has(p));
 
-  const files = (await collectFiles(ROOT))
-    .filter((f) => f !== 'data/library.json')
-    .concat(Object.keys(overrides));
+  const files = localFiles.concat(Object.keys(overrides));
   console.log(`    共 ${files.length} 个文件` + (removals.length ? `，清理 ${removals.length} 个旧文件` : ''));
 
   const entries = [];

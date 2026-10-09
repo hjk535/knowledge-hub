@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EOF 主成分分析</title>
+<style>
+  :root{
+    --bg:#fbfbfa; --card:#fff; --ink:#18181b; --ink2:#52525b; --muted:#8b8b93;
+    --line:#e8e8e5; --line2:#d6d6d2; --accent:#2f6df6; --fig:#ffffff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0c0c0d; --card:#151517; --ink:#ededef; --ink2:#a1a1aa; --muted:#71717a;
+           --line:#26262a; --line2:#34343a; --accent:#5b8dff; }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:44px 24px 90px}
+
+  header h1{margin:0 0 6px;font-size:25px;font-weight:650;letter-spacing:-.02em}
+  header p{margin:0;color:var(--ink2);font-size:14.5px}
+  header .eq{margin-top:12px;font-family:var(--mono);font-size:13px;color:var(--muted)}
+  header .eq b{color:var(--ink2);font-weight:600}
+
+  .panel{
+    margin-top:26px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:16px 18px;
+    display:flex;gap:22px;flex-wrap:wrap;align-items:center;
+  }
+  .ctl{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink2);white-space:nowrap}
+  .ctl input[type=range]{width:112px;accent-color:var(--accent);cursor:pointer}
+  .ctl output{font-family:var(--mono);font-size:12px;color:var(--ink);min-width:26px;text-align:right}
+  .spacer{flex:1}
+  button{
+    font:inherit;font-size:13px;padding:7px 15px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--line2);background:transparent;color:var(--ink);transition:.15s;
+  }
+  button:hover{background:var(--line)}
+
+  section{margin-top:34px}
+  .st{
+    display:flex;align-items:baseline;gap:9px;margin-bottom:11px;
+    font-size:13.5px;font-weight:600;letter-spacing:.01em;
+  }
+  .st span{font-weight:400;color:var(--muted);font-size:12.5px;font-family:var(--mono)}
+
+  .fig{
+    background:var(--fig);border:1px solid var(--line);border-radius:12px;
+    padding:12px;overflow:hidden;
+  }
+  canvas{display:block;width:100%}
+  .axis{display:flex;justify-content:space-between;font-size:11px;color:#9a9a94;margin-top:6px;font-family:var(--mono)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+
+  .bars{display:flex;flex-direction:column;gap:7px}
+  .bar{display:flex;align-items:center;gap:12px;font-size:12.5px}
+  .bar .lab{width:52px;color:var(--muted);font-family:var(--mono);flex:none}
+  .bar .track{flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden}
+  .bar .fill{height:100%;background:var(--accent);border-radius:4px;transition:width .25s cubic-bezier(.32,.72,0,1)}
+  .bar .val{width:56px;text-align:right;font-family:var(--mono);color:var(--ink2);flex:none}
+
+  .note{color:var(--muted);font-size:12.5px;margin-top:9px;line-height:1.7}
+  .note code{font-family:var(--mono);font-size:12px;background:var(--line);padding:1px 5px;border-radius:4px}
+
+  .kbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:13px}
+  .kbar .ctl input[type=range]{width:150px}
+  .res{font-family:var(--mono);font-size:12.5px;color:var(--ink2)}
+  .res b{font-weight:600}
+
+  ul.pts{margin:14px 0 0;padding-left:18px;color:var(--ink2);font-size:13.5px;line-height:1.9}
+  ul.pts li::marker{color:var(--muted)}
+  ul.pts b{font-weight:600;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>EOF 主成分分析</h1>
+    <p>把一个随时间变化的场，拆成几个正交的空间模态，以及各自的时间系数。</p>
+    <div class="eq">X(t, x) &nbsp;=&nbsp; <b>Σ</b><sub>k</sub> &nbsp;PC<sub>k</sub>(t) · EOF<sub>k</sub>(x)</div>
+  </header>
+
+  <div class="panel">
+    <div class="ctl">模态一 <input type="range" id="s-a1" min="0" max="100" value="50"><output id="o-a1"></output></div>
+    <div class="ctl">模态二 <input type="range" id="s-a2" min="0" max="100" value="36"><output id="o-a2"></output></div>
+    <div class="ctl">噪声 <input type="range" id="s-nz" min="0" max="100" value="12"><output id="o-nz"></output></div>
+    <div class="spacer"></div>
+    <button id="btn-new">换一组</button>
+  </div>
+
+  <section>
+    <div class="st">原始场 <span>X(t, x)</span></div>
+    <div class="fig"><canvas id="c-raw" height="300"></canvas></div>
+    <div class="axis"><span>← 空间 x →</span><span>↓ 时间 t</span></div>
+  </section>
+
+  <section>
+    <div class="st">方差贡献 <span>λₖ / Σλ</span></div>
+    <div class="bars" id="bars"></div>
+    <div class="note">前两阶通常就能还原场的主要结构；EOF 之间相互正交，PC 之间互不相关。</div>
+  </section>
+
+  <section class="grid2">
+    <div>
+      <div class="st">EOF 1 <span>空间模态</span></div>
+      <div class="fig"><canvas id="c-eof1" height="128"></canvas></div>
+    </div>
+    <div>
+      <div class="st">PC 1 <span>时间系数</span></div>
+      <div class="fig"><canvas id="c-pc1" height="128"></canvas></div>
+    </div>
+    <div>
+      <div class="st">EOF 2 <span>空间模态</span></div>
+      <div class="fig"><canvas id="c-eof2" height="128"></canvas></div>
+    </div>
+    <div>
+      <div class="st">PC 2 <span>时间系数</span></div>
+      <div class="fig"><canvas id="c-pc2" height="128"></canvas></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="st">重建 <span>用前 k 阶还原</span></div>
+    <div class="kbar">
+      <div class="ctl">阶数 k <input type="range" id="s-k" min="1" max="5" value="2"><output id="o-k"></output></div>
+      <div class="res">残差方差 <b id="resid">—</b></div>
+    </div>
+    <div class="fig"><canvas id="c-rec" height="300"></canvas></div>
+  </section>
+
+  <ul class="pts">
+    <li><b>EOF</b> 是协方差矩阵的特征向量，代表场在空间上的典型分布形态。</li>
+    <li><b>PC</b> 是相应特征向量上的投影系数，表示这个形态在不同时刻的强弱与正负。</li>
+    <li><b>方差贡献</b> 即特征值占比。EOF 按方差降序排列，<b>编号与物理机制无关</b> —— 把某个模态调强，它就会升为第一阶。</li>
+    <li>取前几阶即可抓住主要信号，其余归入噪声；高阶模态往往只是局地噪声，不必解释。</li>
+  </ul>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- 网格 ---------- */
+  var NT = 140, NX = 56;
+  var rndSeed = 12345;
+  function rnd(){ rndSeed = (rndSeed * 1103515245 + 12345) & 0x7fffffff; return rndSeed / 0x7fffffff; }
+
+  /* ---------- 合成数据 ----------
+     真实模态取正交的正弦：sin(πx)、sin(2πx)          */
+  function smooth(n, r){
+    var comps = [], k;
+    for (k = 0; k < 5; k++) comps.push({ f: 0.7 + k * 1.3 + r() * 0.6, p: r() * 6.283, a: 1 / (k + 1) });
+    var out = [], t, i, v, c;
+    for (t = 0; t < n; t++){
+      v = 0;
+      for (i = 0; i < comps.length; i++){ c = comps[i]; v += c.a * Math.sin(6.283 * c.f * t / n + c.p); }
+      out.push(v);
+    }
+    var m = 0; for (t = 0; t < n; t++) m += out[t] / n;
+    var s = 0; for (t = 0; t < n; t++) s += (out[t] - m) * (out[t] - m);
+    s = Math.sqrt(s / n) || 1;
+    return out.map(function(v){ return (v - m) / s; });
+  }
+
+  /* 去掉 b 中与 a 相关的部分并归一化。
+     低频序列在短样本里很容易碰巧相关，不处理会让两个模态"打架"。 */
+  function decorrelate(a, b){
+    var t, dot = 0, n = a.length;
+    for (t = 0; t < n; t++) dot += a[t] * b[t];
+    dot /= n;
+    var out = [], m = 0;
+    for (t = 0; t < n; t++){ out.push(b[t] - dot * a[t]); m += out[t] / n; }
+    var s = 0;
+    for (t = 0; t < n; t++) s += (out[t] - m) * (out[t] - m);
+    s = Math.sqrt(s / n) || 1;
+    return out.map(function(v){ return (v - m) / s; });
+  }
+
+  var TRUE1 = [], TRUE2 = [], XS = [];
+  (function(){
+    var i, x;
+    for (i = 0; i < NX; i++){ x = i / (NX - 1); XS.push(x); TRUE1.push(Math.sin(Math.PI * x)); TRUE2.push(Math.sin(2 * Math.PI * x)); }
+  })();
+
+  var A1 = [], A2 = [], X = [];
+
+  /* 白噪声场：时间、空间上都不相关，才不会被低阶模态"吸收" */
+  function white(t, i){
+    var x = Math.sin(t * 12.9898 + i * 78.233) * 43758.5453;
+    return (x - Math.floor(x)) - 0.5;
+  }
+
+  function buildData(){
+    A1 = smooth(NT, rnd);
+    A2 = decorrelate(A1, smooth(NT, rnd));    // 保证两个模态的时间系数互不相关
+    var a1 = +document.getElementById('s-a1').value / 50;
+    var a2 = +document.getElementById('s-a2').value / 50;
+    var nz = +document.getElementById('s-nz').value / 100;
+    X = [];
+    for (var t = 0; t < NT; t++){
+      var row = [];
+      for (var i = 0; i < NX; i++){
+        row.push(a1 * A1[t] * TRUE1[i] + a2 * A2[t] * TRUE2[i] + nz * 8 * white(t, i));
+      }
+      X.push(row);
+    }
+  }
+
+  /* ---------- 对称矩阵特征分解（循环 Jacobi） ---------- */
+  function jacobi(Ain, n){
+    var A = Ain.map(function(r){ return r.slice(); });
+    var V = [], i, j;
+    for (i = 0; i < n; i++){ V.push([]); for (j = 0; j < n; j++) V[i].push(i === j ? 1 : 0); }
+    for (var sweep = 0; sweep < 60; sweep++){
+      var off = 0;
+      for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) off += A[i][j] * A[i][j];
+      if (off < 1e-18) break;
+      for (var p = 0; p < n - 1; p++){
+        for (var q = p + 1; q < n; q++){
+          if (Math.abs(A[p][q]) < 1e-15) continue;
+          var th = (A[q][q] - A[p][p]) / (2 * A[p][q]);
+          var t = (th >= 0 ? 1 : -1) / (Math.abs(th) + Math.sqrt(th * th + 1));
+          var c = 1 / Math.sqrt(t * t + 1), s = t * c, k;
+          for (k = 0; k < n; k++){ var kp = A[k][p], kq = A[k][q]; A[k][p] = c * kp - s * kq; A[k][q] = s * kp + c * kq; }
+          for (k = 0; k < n; k++){ var pk = A[p][k], qk = A[q][k]; A[p][k] = c * pk - s * qk; A[q][k] = s * pk + c * qk; }
+          for (k = 0; k < n; k++){ var vp = V[k][p], vq = V[k][q]; V[k][p] = c * vp - s * vq; V[k][q] = s * vp + c * vq; }
+        }
+      }
+    }
+    var vals = [], vecs = [];
+    for (i = 0; i < n; i++){ vals.push(A[i][i]); vecs.push(V.map(function(row){ return row[i]; })); }
+    var idx = vals.map(function(v, i){ return i; }).sort(function(a, b){ return vals[b] - vals[a]; });
+    return {
+      values: idx.map(function(i){ return vals[i]; }),
+      vectors: idx.map(function(i){ return vecs[i]; })
+    };
+  }
+
+  /* ---------- EOF 分解 ---------- */
+  var SOL = null;
+  function solve(){
+    var nt = X.length, nx = X[0].length, i, j, t;
+    var mean = new Array(nx).fill(0);
+    for (t = 0; t < nt; t++) for (i = 0; i < nx; i++) mean[i] += X[t][i] / nt;
+
+    var A = X.map(function(r){ return r.map(function(v, i){ return v - mean[i]; }); });
+
+    var C = [];
+    for (i = 0; i < nx; i++){ C.push(new Array(nx).fill(0)); }
+    for (i = 0; i < nx; i++){
+      for (j = i; j < nx; j++){
+        var s = 0;
+        for (t = 0; t < nt; t++) s += A[t][i] * A[t][j];
+        C[i][j] = C[j][i] = s / (nt - 1);
+      }
+    }
+
+    var eig = jacobi(C, nx);
+    var total = eig.values.reduce(function(a, b){ return a + Math.max(b, 0); }, 0) || 1;
+
+    var modes = [];
+    for (var k = 0; k < Math.min(6, nx); k++){
+      var e = eig.vectors[k];
+      // 符号约定：绝对值最大的分量为正
+      var mx = 0, mi = 0;
+      for (i = 0; i < nx; i++) if (Math.abs(e[i]) > mx){ mx = Math.abs(e[i]); mi = i; }
+      if (e[mi] < 0) e = e.map(function(v){ return -v; });
+
+      var pc = [];
+      for (t = 0; t < nt; t++){ var sp = 0; for (i = 0; i < nx; i++) sp += A[t][i] * e[i]; pc.push(sp); }
+
+      modes.push({ eof: e, pc: pc, var: Math.max(eig.values[k], 0) / total, mean: mean });
+    }
+    SOL = { modes: modes, mean: mean, A: A, total: total };
+  }
+
+  function reconstruct(k){
+    var nt = X.length, nx = X[0].length, out = [], t, i, m, s;
+    for (t = 0; t < nt; t++){
+      var row = [];
+      for (i = 0; i < nx; i++){
+        s = SOL.mean[i];
+        for (m = 0; m < k && m < SOL.modes.length; m++) s += SOL.modes[m].pc[t] * SOL.modes[m].eof[i];
+        row.push(s);
+      }
+      out.push(row);
+    }
+    return out;
+  }
+
+  /* ---------- 画图 ---------- */
+  var CMAP = [[42, 92, 158], [246, 246, 244], [176, 58, 44]];
+  function color(v){
+    v = Math.max(-1, Math.min(1, v));
+    var a, b, u;
+    if (v < 0){ a = CMAP[0]; b = CMAP[1]; u = v + 1; } else { a = CMAP[1]; b = CMAP[2]; u = v; }
+    return [
+      Math.round(a[0] + (b[0] - a[0]) * u),
+      Math.round(a[1] + (b[1] - a[1]) * u),
+      Math.round(a[2] + (b[2] - a[2]) * u)
+    ];
+  }
+
+  /* 统一处理尺寸与高清屏缩放；逻辑高度记在 data-h 上，避免被后续赋值覆盖 */
+  function prep(canvas){
+    if (!canvas.dataset.h) canvas.dataset.h = canvas.getAttribute('height') || '120';
+    var cssH = parseFloat(canvas.dataset.h);
+    canvas.style.height = cssH + 'px';
+    var cssW = canvas.clientWidth || 400;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    return { ctx: ctx, w: cssW, h: cssH };
+  }
+
+  function heat(canvas, M, fixedMax){
+    var nt = M.length, nx = M[0].length, i, t;
+    var mx = 0;
+    if (fixedMax == null){
+      for (t = 0; t < nt; t++) for (i = 0; i < nx; i++) mx = Math.max(mx, Math.abs(M[t][i]));
+    } else mx = fixedMax;
+    if (mx < 1e-9) mx = 1;
+
+    var off = document.createElement('canvas');
+    off.width = nx; off.height = nt;
+    var octx = off.getContext('2d');
+    var img = octx.createImageData(nx, nt);
+    for (t = 0; t < nt; t++){
+      for (i = 0; i < nx; i++){
+        var c = color(M[t][i] / mx), p = (t * nx + i) * 4;
+        img.data[p] = c[0]; img.data[p + 1] = c[1]; img.data[p + 2] = c[2]; img.data[p + 3] = 255;
+      }
+    }
+    octx.putImageData(img, 0, 0);
+
+    var g = prep(canvas);
+    g.ctx.imageSmoothingEnabled = true;
+    g.ctx.imageSmoothingQuality = 'high';
+    g.ctx.drawImage(off, 0, 0, nx, nt, 0, 0, g.w, g.h);
+    return mx;
+  }
+
+  function line(canvas, data, opts){
+    opts = opts || {};
+    var g = prep(canvas);
+    var ctx = g.ctx, cssW = g.w, cssH = g.h;
+
+    var pad = 8, w = cssW - pad * 2, h = cssH - pad * 2;
+    var mx = 0, i;
+    for (i = 0; i < data.length; i++) mx = Math.max(mx, Math.abs(data[i]));
+    if (mx < 1e-9) mx = 1;
+
+    var zeros = pad + h / 2;
+    ctx.strokeStyle = '#e3e3df'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, zeros + .5); ctx.lineTo(pad + w, zeros + .5); ctx.stroke();
+
+    var n = data.length;
+    ctx.beginPath();
+    for (i = 0; i < n; i++){
+      var px = pad + w * i / (n - 1);
+      var py = zeros - (data[i] / mx) * (h / 2) * 0.88;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = opts.color || '#2f6df6';
+    ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.stroke();
+
+    if (opts.fill){
+      ctx.lineTo(pad + w, zeros); ctx.lineTo(pad, zeros); ctx.closePath();
+      ctx.fillStyle = opts.fill; ctx.fill();
+    }
+  }
+
+  /* ---------- 渲染 ---------- */
+  var rawMax = null;
+  function render(){
+    var i, k;
+
+    var s1 = +document.getElementById('s-a1').value;
+    var s2 = +document.getElementById('s-a2').value;
+    var sn = +document.getElementById('s-nz').value;
+    document.getElementById('o-a1').textContent = (s1 / 50).toFixed(2);
+    document.getElementById('o-a2').textContent = (s2 / 50).toFixed(2);
+    document.getElementById('o-nz').textContent = sn + '%';
+    document.getElementById('o-k').textContent = document.getElementById('s-k').value;
+
+    if (rawMax === null) rawMax = heat(document.getElementById('c-raw'), X);
+    else heat(document.getElementById('c-raw'), X, rawMax);
+
+    var bars = '';
+    for (k = 0; k < Math.min(5, SOL.modes.length); k++){
+      var pct = SOL.modes[k].var * 100;
+      bars += '<div class="bar"><span class="lab">EOF ' + (k + 1) + '</span>' +
+        '<span class="track"><span class="fill" style="width:' + Math.max(pct, 0.6).toFixed(1) + '%"></span></span>' +
+        '<span class="val">' + pct.toFixed(1) + '%</span></div>';
+    }
+    document.getElementById('bars').innerHTML = bars;
+
+    if (SOL.modes[0]) line(document.getElementById('c-eof1'), SOL.modes[0].eof, { color: '#2f6df6' });
+    if (SOL.modes[1]) line(document.getElementById('c-eof2'), SOL.modes[1].eof, { color: '#c0392b' });
+    if (SOL.modes[0]) line(document.getElementById('c-pc1'), SOL.modes[0].pc, { color: '#2f6df6', fill: 'rgba(47,109,246,.09)' });
+    if (SOL.modes[1]) line(document.getElementById('c-pc2'), SOL.modes[1].pc, { color: '#c0392b', fill: 'rgba(192,57,43,.09)' });
+
+    var kk = +document.getElementById('s-k').value;
+    var rec = reconstruct(kk);
+    heat(document.getElementById('c-rec'), rec);
+
+    var num = 0, den = 0;
+    for (var t = 0; t < NT; t++) for (i = 0; i < NX; i++){
+      var d = X[t][i] - rec[t][i];                       // rec 已含气候态，直接相减即残差
+      num += d * d;
+      den += Math.pow(X[t][i] - SOL.mean[i], 2);
+    }
+    document.getElementById('resid').textContent = (100 * num / (den || 1)).toFixed(1) + '%';
+  }
+
+  function recompute(){
+    buildData();
+    solve();
+    render();
+  }
+
+  /* 拖动滑块时用防抖合并计算；不用 rAF，因为后台标签页里它可能不触发 */
+  var timer = null;
+  function schedule(){
+    clearTimeout(timer);
+    timer = setTimeout(function(){ rawMax = null; recompute(); }, 30);
+  }
+
+  ['s-a1', 's-a2', 's-nz'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', schedule);
+  });
+  document.getElementById('s-k').addEventListener('input', render);
+  document.getElementById('btn-new').addEventListener('click', function(){
+    rndSeed = (Date.now() & 0x7fffffff) || 1;
+    schedule();
+  });
+
+  var rt;
+  window.addEventListener('resize', function(){
+    clearTimeout(rt); rt = setTimeout(function(){ rawMax = null; render(); }, 160);
+  });
+
+  recompute();
+})();
+</script>
+</body>
+</html>

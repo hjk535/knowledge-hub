@@ -1,10 +1,19 @@
 {
-  "generated": "2026-10-09T00:47:44.538Z",
+  "generated": "2026-10-09T00:55:03.197Z",
   "site": {
     "title": "我的空间",
     "desc": ""
   },
   "items": [
+    {
+      "id": "eof",
+      "type": "page",
+      "title": "EOF 主成分分析",
+      "date": "2026-10-09",
+      "tags": [],
+      "summary": "",
+      "path": "content/pages/eof.html"
+    },
     {
       "id": "九题分享",
       "type": "note",
