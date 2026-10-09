@@ -82,17 +82,6 @@
   ul.pts b{font-weight:600;color:var(--ink)}
 
 
-  .vid{margin-top:26px;background:#0e1116;border:1px solid var(--line);border-radius:14px;
-       overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.28)}
-  .vid video{display:block;width:100%;aspect-ratio:16/9;background:#0e1116}
-  .vid-bar{display:flex;align-items:center;gap:12px;padding:11px 16px;
-           border-top:1px solid rgba(255,255,255,.08);background:#151a21}
-  .vid-bar .t{color:#e8eaee;font-size:13px}
-  .vid-bar .d{color:#7c828c;font-size:12px;font-family:var(--mono)}
-  .vid-bar .g{flex:1}
-  .vid-bar a{color:#58C4DD;font-size:12.5px;text-decoration:none}
-  .vid-bar a:hover{text-decoration:underline}
-
   .evt{margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.9}
   .evt code{font-family:var(--mono);font-size:12px;background:var(--line);padding:1px 5px;border-radius:4px}
 </style>
@@ -105,16 +94,6 @@
     <p>把一个随时间变化的场，拆成几个正交的空间模态，以及各自的时间系数。</p>
     <div class="eq">X(t, x) &nbsp;=&nbsp; <b>Σ</b><sub>k</sub> &nbsp;PC<sub>k</sub>(t) · EOF<sub>k</sub>(x)</div>
   </header>
-
-  <section class="vid">
-    <video src="../videos/eof-explained.mp4" controls preload="metadata" playsinline></video>
-    <div class="vid-bar">
-      <span class="t">EOF 主成分分析 · 讲解</span>
-      <span class="d">58 秒</span>
-      <span class="g"></span>
-      <a href="../videos/eof-explained.mp4" download>下载</a>
-    </div>
-  </section>
 
   <div class="tabs">
     <button class="tab on" data-m="syn">合成数据</button>
