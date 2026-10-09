@@ -498,14 +498,9 @@
     var desc = (site.desc || '').trim();
     var coords = (site.coords || '').trim();
 
-    var years = LIB.items.map(function (i) { return String(i.date || '').slice(0, 4); })
-      .filter(function (y) { return /^\d{4}$/.test(y); }).sort();
-    var span = years.length ? (years[0] === years[years.length - 1] ? years[0] : years[0] + '–' + years[years.length - 1]) : '';
-
+    // 只保留「篇内容」一个数字，其余统计项已按需求移除
     var stats = [];
     if (LIB.items.length) stats.push([String(LIB.items.length), '篇内容']);
-    if (span) stats.push([span, '覆盖时段']);
-    stats.push(['NOAA', '数据来源']);
 
     return '<section class="hero">' +
       (coords ? '<p class="coord">' + esc(coords) + '</p>' : '') +

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-09T08:35:11.269Z",
+  "generated": "2026-10-09T08:37:24.529Z",
   "site": {
     "title": "hjkd 物理海洋知识库",
     "desc": "物理海洋观测与知识整理。EOF 分解、海表热收支——用可复现的数据把每一个现象讲清楚，而不是只给结论。",
@@ -64,17 +64,6 @@
       "summary": "",
       "path": "content/九题分享.md",
       "cover": "content/images/answer_02_mixed_layer-20261008112029.jpg"
-    },
-    {
-      "id": "markdown-guide",
-      "type": "note",
-      "title": "Markdown 语法",
-      "date": "2026-02-14",
-      "tags": [
-        "参考"
-      ],
-      "summary": "文本 标题 列表 引用 链接与图片 代码块 用三个反引号包起来，开头写上语言名可以着色： 表格 分隔线",
-      "path": "content/markdown-guide.md"
     }
   ]
 }
