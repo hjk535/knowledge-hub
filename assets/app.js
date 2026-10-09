@@ -472,15 +472,18 @@
 
   function card(it) {
     var media = '';
-    if (it.type === 'image') {
-      media = '<div class="card-cover"><img src="' + esc(it.path) + '" alt="" loading="lazy"></div>';
-    } else if (it.type === 'note' && it.cover) {
-      media = '<div class="card-cover"><img src="' + esc(it.cover) + '" alt="" loading="lazy"></div>';
+    var img = it.type === 'image' ? it.path : it.cover;
+    if (img) {
+      media = '<div class="card-cover' + (it.type === 'video' ? ' playable' : '') + '">' +
+        '<img src="' + esc(img) + '" alt="" loading="lazy">' +
+        (it.type === 'video' ? '<span class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>' : '') +
+        '</div>';
     }
     var meta = [];
     if (it.date) meta.push('<span>' + esc(fmtDate(it.date)) + '</span>');
     if (it.type === 'page') meta.push('<span class="dot"></span><span>页面</span>');
     else if (it.type === 'image') meta.push('<span class="dot"></span><span>图片</span>');
+    else if (it.type === 'video') meta.push('<span class="dot"></span><span>视频</span>');
 
     return '<a class="card' + (media ? '' : ' plain') + '" href="#/i/' + encodeURIComponent(it.id) + '">' + media +
       '<div class="card-body">' +
@@ -505,6 +508,15 @@
       var back = '<button class="back" id="back">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg>返回</button>';
 
+      if (it.type === 'video') {
+        $('#app').innerHTML = back + '<article class="article" style="max-width:100%">' +
+          '<header><h1>' + esc(it.title || '') + '</h1>' +
+          '<div class="meta">' + metaHTML(it) + '</div></header>' +
+          '<div class="frame-wrap"><video src="' + esc(it.path) + '" controls preload="metadata" playsinline></video></div>' +
+          footHTML(it) + '</article>';
+        afterItem(it);
+        return;
+      }
       if (it.type === 'page') {
         renderPage(it, back);
       } else if (it.type === 'image') {
@@ -549,6 +561,9 @@
     var a = ['<button class="btn sm" id="a-link">复制链接</button>'];
     if (it.type === 'page') {
       a.push('<a class="btn sm" href="' + esc(it.path) + '" target="_blank" rel="noopener">新窗口打开</a>');
+    }
+    if (it.type === 'video') {
+      a.push('<a class="btn sm" href="' + esc(it.path) + '" download>下载视频</a>');
     }
     if (isAuthor()) {
       a.push('<a class="btn sm" href="#/edit/' + encodeURIComponent(it.id) + '">编辑</a>');

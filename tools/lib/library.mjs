@@ -119,6 +119,25 @@ export function reconcile(prevItems, files) {
       continue;
     }
 
+    // 视频：content/videos/xxx.mp4
+    if (/^content\/videos\/.+\.(mp4|webm|mov|m4v)$/i.test(path)) {
+      const old = byPath.get(path);
+      const base = path.replace(/^content\/videos\//, '').replace(/\.[^.]+$/, '');
+      const item = {
+        id: (old && old.id) || base,
+        type: 'video',
+        title: (old && old.title) || base,
+        date: (old && old.date) || now,
+        tags: (old && old.tags) || [],
+        summary: (old && old.summary) || '',
+        path,
+      };
+      const poster = 'content/videos/' + base + '.jpg';
+      if (files.some((f) => f.path === poster)) item.cover = poster;
+      kept.set(path, item);
+      continue;
+    }
+
     // 图片：content/images/xxx（只有在 items 里登记过的才算独立条目）
     if (/^content\/images\//i.test(path) && byPath.has(path)) {
       kept.set(path, byPath.get(path));

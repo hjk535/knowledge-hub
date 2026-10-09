@@ -142,7 +142,8 @@ async function rebuildRemoteLibrary(owner) {
 
   const textPaths = paths.filter((p) =>
     /^content\/[^/]+\.md$/i.test(p) || /^content\/pages\/.+\.html?$/i.test(p));
-  const imagePaths = paths.filter((p) => /^content\/images\//i.test(p));
+  const imagePaths = paths.filter((p) =>
+    /^content\/images\//i.test(p) || /^content\/videos\//i.test(p));
 
   const files = [];
   for (const p of textPaths) files.push({ path: p, content: await rawFile(owner, p) });

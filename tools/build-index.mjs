@@ -34,6 +34,12 @@ async function collect() {
       files.push({ path: 'content/pages/' + name, content: await readFile(path.join(pagesDir, name), 'utf8') });
     }
   }
+  const vidDir = path.join(contentDir, 'videos');
+  if (existsSync(vidDir)) {
+    for (const name of await readdir(vidDir)) {
+      files.push({ path: 'content/videos/' + name });
+    }
+  }
   const imgDir = path.join(contentDir, 'images');
   if (existsSync(imgDir)) {
     for (const name of await readdir(imgDir)) {
