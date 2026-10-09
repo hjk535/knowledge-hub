@@ -1,33 +1,28 @@
 #!/usr/bin/env node
 /**
- * 用 GitHub REST API 一键部署知识库到 GitHub Pages。
+ * 用 GitHub REST API 一键部署到 GitHub Pages。
  *
- * 全程只访问 api.github.com —— 不需要 git 推送，也不需要打开 github.com 网页。
- * 会完成：创建仓库 → 上传全站文件 → 开启 Pages → 打印访问链接。
+ * 全程只访问 api.github.com —— 不需要 git push，也不需要打开 github.com 网页。
+ * 会完成：创建仓库 → 上传全站文件 → 重建素材库 → 提交 → 开启 Pages → 打印链接。
  *
  * 用法：
- *   node tools/deploy-via-api.mjs --token ghp_xxx --repo knowledge-hub
- *
- * 可选参数：
- *   --owner <用户名>   默认用令牌所属账号
- *   --title <站名>     写入 assets/config.js 的站点标题
- *   --desc  <副标题>
- *   --private          建私有仓库（注意：免费账号的私有仓库不能用 Pages）
- *   --dry-run          只检查，不实际写入
+ *   node tools/deploy-via-api.mjs --token ghp_xxx --repo my-space
  */
-import { readdir, readFile, writeFile, stat } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { noteEntry, sortNotes, buildIndexJSON } from './lib/notes.mjs';
+import { reconcile, sortItems, buildLibraryJSON } from './lib/library.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API = 'https://api.github.com';
 
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.vscode', '.idea']);
-// 注意：这里存的是「相对仓库根的路径」，不是单纯的文件名
 const SKIP_FILES = new Set(['.DS_Store', 'Thumbs.db', 'tools/dev-server.mjs']);
-const BINARY_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.woff', '.woff2', '.ttf', '.zip']);
+const BINARY_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.woff', '.woff2', '.ttf', '.zip', '.mp4', '.webm']);
+
+/* 早期版本留下的文件，部署时顺手清掉 */
+const LEGACY_FILES = ['data/index.json', 'kb.html', 'demo.html'];
 
 /* ---------------- 参数 ---------------- */
 function parseArgs(argv) {
@@ -41,7 +36,6 @@ function parseArgs(argv) {
     else if (a === '--desc') out.desc = argv[++i];
     else if (a === '--branch') out.branch = argv[++i];
     else if (a === '--private') out.private = true;
-    else if (a === '--force-index') out.forceIndex = true;
     else if (a === '--dry-run') out.dryRun = true;
     else if (a === '--help' || a === '-h') out.help = true;
   }
@@ -52,36 +46,33 @@ const args = parseArgs(process.argv.slice(2));
 
 function printHelp() {
   console.log(`
-知识库一键部署（纯 API，不需要 git push）
+部署到 GitHub Pages（纯 API）
 
-  node tools/deploy-via-api.mjs --token <令牌> --repo <仓库名> [选项]
+  node tools/deploy-via-api.mjs --repo <仓库名> [选项]
 
 必填：
-  --repo       仓库名，例如 knowledge-hub
-  --token      GitHub 令牌（classic 令牌，勾选 repo + workflow 权限）
-               也可以改用环境变量 KB_TOKEN，或不传此参数由脚本交互式询问
+  --repo        仓库名
+  --token       GitHub 令牌（classic，勾选 repo + workflow）
+                也可用环境变量 KB_TOKEN，或不传由脚本交互式询问
 
 可选：
-  --owner      仓库归属账号，默认是令牌所属用户
-  --title      站点标题，例如「我的知识库」
-  --desc       站点副标题
-  --branch     分支名，默认 main
-  --private    建私有仓库（免费账号私有仓库无法使用 Pages）
-  --force-index  强制用本地 index.html 覆盖线上（会覆盖你已设为主页的 HTML，慎用）
-  --dry-run    只做检查，不写入任何东西
-
-部署完成后会打印形如 https://<用户名>.github.io/<仓库名>/ 的链接。
+  --owner       归属账号，默认取令牌所属用户
+  --title       站点标题
+  --desc        站点副标题
+  --branch      分支名，默认 main
+  --private     建私有仓库（免费账号私有仓库不能用 Pages）
+  --dry-run     只检查，不写入
 `);
 }
 
 async function promptToken() {
   if (!process.stdin.isTTY) {
-    console.error('缺少令牌。请用 --token 参数，或设置环境变量 KB_TOKEN 后重试。');
+    console.error('缺少令牌。请用 --token，或设置环境变量 KB_TOKEN。');
     process.exit(1);
   }
   const { createInterface } = await import('node:readline/promises');
   const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const t = (await rl.question('请粘贴 GitHub 令牌后按回车（内容会显示在屏幕上）：')).trim();
+  const t = (await rl.question('请粘贴 GitHub 令牌后按回车：')).trim();
   rl.close();
   console.log('');
   return t;
@@ -93,66 +84,38 @@ if (!args.token) args.token = await promptToken();
 if (!args.token || !args.repo) { printHelp(); process.exit(1); }
 
 /* ---------------- HTTP ---------------- */
-async function api(method, endpoint, body) {
-  const res = await fetch(API + endpoint, {
+async function api(method, ep, body) {
+  const res = await fetch(API + ep, {
     method,
     headers: {
       Authorization: 'Bearer ' + args.token,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'Content-Type': 'application/json',
-      'User-Agent': 'knowledge-hub-deployer',
+      'User-Agent': 'site-deployer',
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-
   if (!res.ok) {
-    const err = new Error(
-      `GitHub API ${method} ${endpoint} → ${res.status} ${(data && data.message) || text}`
-    );
+    const err = new Error(`GitHub API ${method} ${ep} → ${res.status} ${(data && data.message) || text}`);
     err.status = res.status;
-    err.data = data;
     throw err;
   }
   return data;
 }
 
-/* 依据线上仓库里真实的 content/*.md 重建目录清单。
-   绝不能拿本地那份去覆盖 —— 线上可能有网页编辑器新增、而本地没有的笔记。 */
-async function rebuildRemoteIndex(owner) {
-  let dir;
-  try {
-    dir = await api('GET', `/repos/${owner}/${args.repo}/contents/content?ref=${args.branch}`);
-  } catch (e) {
-    if (e.status === 404) return null;      // 还没有 content 目录
-    throw e;
-  }
-  const mds = (Array.isArray(dir) ? dir : [])
-    .filter((f) => f.type === 'file' && /\.md$/i.test(f.name));
-
-  const notes = [];
-  for (const f of mds) {
-    const raw = await rawFile(owner, f.path);
-    notes.push(noteEntry(f.name.replace(/\.md$/i, ''), raw));
-  }
-  sortNotes(notes);
-  return { json: buildIndexJSON(notes), count: notes.length };
-}
-
 async function rawFile(owner, repoRelPath) {
   const res = await fetch(
-    `${API}/repos/${owner}/${args.repo}/contents/${encodeURI(repoRelPath)}` +
-    `?ref=${encodeURIComponent(args.branch)}&t=${Date.now()}`,
+    `${API}/repos/${owner}/${args.repo}/contents/${encodeURI(repoRelPath)}?ref=${encodeURIComponent(args.branch)}&t=${Date.now()}`,
     {
       headers: {
         Authorization: 'Bearer ' + args.token,
         Accept: 'application/vnd.github.raw+json',
         'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'knowledge-hub-deployer',
+        'User-Agent': 'site-deployer',
       },
       cache: 'no-store',
     }
@@ -165,17 +128,44 @@ async function rawFile(owner, repoRelPath) {
   return res.text();
 }
 
-/* ---------------- 收集文件 ---------------- */
+/* 依据线上真实内容重建素材库 —— 绝不能用本地那份覆盖，
+   否则会丢掉网页上新增/编辑的内容。 */
+async function rebuildRemoteLibrary(owner) {
+  let tree;
+  try {
+    tree = await api('GET', `/repos/${owner}/${args.repo}/git/trees/${encodeURIComponent(args.branch)}?recursive=1`);
+  } catch (e) {
+    if (e.status === 404 || e.status === 409) return null;
+    throw e;
+  }
+  const paths = (tree.tree || []).filter((n) => n.type === 'blob').map((n) => n.path);
+
+  const textPaths = paths.filter((p) =>
+    /^content\/[^/]+\.md$/i.test(p) || /^content\/pages\/.+\.html?$/i.test(p));
+  const imagePaths = paths.filter((p) => /^content\/images\//i.test(p));
+
+  const files = [];
+  for (const p of textPaths) files.push({ path: p, content: await rawFile(owner, p) });
+  for (const p of imagePaths) files.push({ path: p });
+
+  let prev = null;
+  try { prev = JSON.parse(await rawFile(owner, 'data/library.json')); } catch { /* 还没有 */ }
+  if (!prev) { try { prev = JSON.parse(await rawFile(owner, 'data/index.json')); } catch { /* 旧格式也没有 */ } }
+
+  const items = reconcile(prev && prev.items, files);
+  const site = (prev && prev.site) || {};
+  return { json: buildLibraryJSON(site, items), count: items.length };
+}
+
+/* ---------------- 文件收集 ---------------- */
 async function collectFiles(dir, base = '') {
   const out = [];
-  const entries = await readdir(dir, { withFileTypes: true });
-  for (const e of entries) {
+  for (const e of await readdir(dir, { withFileTypes: true })) {
     const rel = base ? `${base}/${e.name}` : e.name;
     if (e.isDirectory()) {
       if (SKIP_DIRS.has(e.name)) continue;
       out.push(...await collectFiles(path.join(dir, e.name), rel));
     } else if (e.isFile()) {
-      // 用相对路径匹配，否则 SKIP_FILES 里带目录的条目永远匹配不上
       if (SKIP_FILES.has(rel)) continue;
       if (e.name.endsWith('.log')) continue;
       out.push(rel);
@@ -184,143 +174,106 @@ async function collectFiles(dir, base = '') {
   return out;
 }
 
-/* ---------------- 主流程 ---------------- */
 function step(n, msg) { console.log(`\n[${n}] ${msg}`); }
 
+/* ---------------- 主流程 ---------------- */
 async function main() {
-  /* 1. 校验令牌 */
   step(1, '校验令牌…');
   const me = await api('GET', '/user');
   const owner = args.owner || me.login;
-  console.log(`    ✓ 令牌有效，账号：${me.login}`);
-  console.log(`    → 目标仓库：${owner}/${args.repo}`);
+  console.log(`    ✓ ${me.login} → ${owner}/${args.repo}`);
 
-  if (args.dryRun) {
-    console.log('\n--dry-run：仅校验通过，未做任何写入。');
-    return { dryRun: true, owner };
-  }
+  if (args.dryRun) { console.log('\n--dry-run：仅校验通过。'); return; }
 
-  /* 2. 确保仓库存在 */
   step(2, '检查仓库…');
   let created = false;
   try {
     await api('GET', `/repos/${owner}/${args.repo}`);
-    console.log('    ✓ 仓库已存在，将更新内容');
+    console.log('    ✓ 仓库已存在');
   } catch (e) {
     if (e.status !== 404) throw e;
-    console.log('    → 仓库不存在，正在创建…');
     await api('POST', owner === me.login ? '/user/repos' : `/orgs/${owner}/repos`, {
       name: args.repo,
-      description: args.desc || '我的知识库 —— 在线编辑、随时分享',
+      description: args.desc || '我的空间',
       private: !!args.private,
-      has_issues: true,
-      has_wiki: false,
-      auto_init: false,
+      has_issues: true, has_wiki: false, auto_init: false,
     });
     created = true;
-    console.log('    ✓ 仓库创建完成');
+    console.log('    ✓ 已创建');
   }
 
-  /* 3. 确保仓库已初始化
-     GitHub 限制：完全没有提交的空仓库无法使用 Git Data API（blobs/trees 会返回
-     409 "Git Repository is empty"）。所以先用 Contents API 建一个初始化提交。 */
   step(3, '确保仓库已初始化…');
-  let initialized = true;
   try {
     await api('GET', `/repos/${owner}/${args.repo}/git/ref/heads/${args.branch}`);
-    console.log('    ✓ 仓库已有提交历史');
+    console.log('    ✓ 已有提交历史');
   } catch (e) {
     if (e.status !== 404 && e.status !== 409) throw e;
-    initialized = false;
-    console.log('    → 空仓库，先创建初始化提交…');
-    const bootstrap = Buffer.from(
-      `# ${args.repo}\n\n此仓库由知识库部署脚本初始化。\n`, 'utf8'
-    ).toString('base64');
+    const bootstrap = Buffer.from(`# ${args.repo}\n`, 'utf8').toString('base64');
     await api('PUT', `/repos/${owner}/${args.repo}/contents/README.md`, {
-      message: '初始化仓库',
-      content: bootstrap,
-      branch: args.branch,
+      message: '初始化仓库', content: bootstrap, branch: args.branch,
     });
-    console.log('    ✓ 初始化完成');
+    console.log('    ✓ 已初始化');
   }
 
-  /* 4. 刷新目录清单 */
-  step(4, '生成内容目录清单…');
+  step(4, '生成素材库…');
   try {
     execFileSync(process.execPath, [path.join(ROOT, 'tools', 'build-index.mjs')], {
       cwd: ROOT, stdio: 'inherit',
     });
-  } catch {
-    console.log('    ! 生成清单失败，跳过（站点仍可用）');
-  }
+  } catch { console.log('    ! 跳过'); }
 
-  /* 4. 把 owner/repo 写进站点配置 */
   step(5, '写入站点配置…');
   const cfgPath = path.join(ROOT, 'assets', 'config.js');
   let cfg = await readFile(cfgPath, 'utf8');
   cfg = cfg.replace(/owner:\s*"[^"]*"/, `owner: "${owner}"`)
-           .replace(/repo:\s*"[^"]*"/, `repo: "${args.repo}"`)
-           .replace(/branch:\s*"[^"]*"/, `branch: "${args.branch}"`);
+    .replace(/repo:\s*"[^"]*"/, `repo: "${args.repo}"`)
+    .replace(/branch:\s*"[^"]*"/, `branch: "${args.branch}"`);
   if (args.title) cfg = cfg.replace(/title:\s*"[^"]*"/, `title: "${args.title.replace(/"/g, '\\"')}"`);
   if (args.desc) cfg = cfg.replace(/desc:\s*"[^"]*"/, `desc: "${args.desc.replace(/"/g, '\\"')}"`);
   await writeFile(cfgPath, cfg, 'utf8');
-  console.log(`    ✓ assets/config.js → ${owner}/${args.repo}`);
+  console.log(`    ✓ ${owner}/${args.repo}`);
 
-  /* 5. 上传文件（Git Data API） */
   step(6, '上传站点文件…');
-
-  // 目录清单必须按线上真实内容重建，不能用本地那份覆盖，
-  // 否则会抹掉网页编辑器新增的笔记条目。
   const overrides = {};
   try {
-    const rebuilt = await rebuildRemoteIndex(owner);
-    if (rebuilt) {
-      overrides['data/index.json'] = rebuilt.json;
-      console.log(`    ✓ 目录清单按线上内容重建（${rebuilt.count} 篇）`);
+    const lib = await rebuildRemoteLibrary(owner);
+    if (lib) {
+      overrides['data/library.json'] = lib.json;
+      console.log(`    ✓ 素材库按线上内容重建（${lib.count} 项）`);
     } else {
-      console.log('    · 线上还没有 content 目录，改用本地目录清单');
+      console.log('    · 线上还没有内容');
     }
   } catch (e) {
-    console.log(`    ! 重建目录清单失败（${e.message}），本次不改动线上那一份`);
+    console.log(`    ! 重建素材库失败（${e.message}），本次不改动线上那一份`);
   }
-  if (overrides['data/index.json'] === undefined) {
-    const localIndex = await readFile(path.join(ROOT, 'data', 'index.json'), 'utf8').catch(() => null);
-    if (localIndex != null) overrides['data/index.json'] = localIndex;
+  if (overrides['data/library.json'] === undefined) {
+    const local = await readFile(path.join(ROOT, 'data', 'library.json'), 'utf8').catch(() => null);
+    if (local != null) overrides['data/library.json'] = local;
   }
+
+  // 清掉早期版本遗留的文件
+  const remoteTree = await api('GET', `/repos/${owner}/${args.repo}/git/trees/${encodeURIComponent(args.branch)}?recursive=1`);
+  const remotePaths = new Set((remoteTree.tree || []).map((n) => n.path));
+  const removals = LEGACY_FILES.filter((p) => remotePaths.has(p));
 
   const files = (await collectFiles(ROOT))
-    .filter((f) => f !== 'data/index.json')
+    .filter((f) => f !== 'data/library.json')
     .concat(Object.keys(overrides));
-  console.log(`    共 ${files.length} 个文件`);
-
-  // 根目录 index.html 归用户所有：一旦他们设了自己的主页，就不能再被覆盖。
-  // 判断依据是文件里是否还留着 kb-starter 标记。
-  let keepUserIndex = false;
-  try {
-    const remoteIndex = await rawFile(owner, 'index.html');
-    if (remoteIndex.indexOf('kb-starter') === -1) {
-      keepUserIndex = true;
-      console.log(args.forceIndex
-        ? '    ! 线上 index.html 是你自己的主页，但 --force-index 指定了强制覆盖'
-        : '    · 线上 index.html 是你自己的主页，本次不覆盖');
-    }
-  } catch (e) {
-    // 读不到（例如线上还没有 index.html）就按「不存在」处理，正常上传
-  }
-  const uploads = (keepUserIndex && !args.forceIndex) ? files.filter((f) => f !== 'index.html') : files;
+  console.log(`    共 ${files.length} 个文件` + (removals.length ? `，清理 ${removals.length} 个旧文件` : ''));
 
   const entries = [];
+  for (const rel of removals) entries.push({ path: rel, mode: '100644', type: 'blob', sha: null });
+
   const CONCURRENCY = 6;
-  for (let i = 0; i < uploads.length; i += CONCURRENCY) {
-    const batch = uploads.slice(i, i + CONCURRENCY);
+  for (let i = 0; i < files.length; i += CONCURRENCY) {
+    const batch = files.slice(i, i + CONCURRENCY);
     const results = await Promise.all(batch.map(async (rel) => {
       let payload;
       if (overrides[rel] !== undefined) {
         payload = { content: overrides[rel], encoding: 'utf-8' };
       } else {
         const buf = await readFile(path.join(ROOT, rel));
-        const isBinary = BINARY_EXT.has(path.extname(rel).toLowerCase());
-        payload = isBinary
+        payload = BINARY_EXT.has(path.extname(rel).toLowerCase())
           ? { content: buf.toString('base64'), encoding: 'base64' }
           : { content: buf.toString('utf8'), encoding: 'utf-8' };
       }
@@ -328,80 +281,58 @@ async function main() {
       return { path: rel, mode: '100644', type: 'blob', sha: blob.sha };
     }));
     entries.push(...results);
-    process.stdout.write(`\r    已上传 ${Math.min(i + CONCURRENCY, uploads.length)}/${uploads.length}`);
+    process.stdout.write(`\r    已上传 ${Math.min(i + CONCURRENCY, files.length)}/${files.length}`);
   }
   console.log('');
 
-  /* 6. 建立提交 */
   step(7, '创建提交…');
-  let parentSha = null;
-  let baseTree = null;
+  let parent = null, baseTree = null;
   try {
     const ref = await api('GET', `/repos/${owner}/${args.repo}/git/ref/heads/${args.branch}`);
-    parentSha = ref.object.sha;
-    const parentCommit = await api('GET', `/repos/${owner}/${args.repo}/git/commits/${parentSha}`);
-    baseTree = parentCommit.tree.sha;
-    console.log(`    → 在已有分支上提交（父提交 ${parentSha.slice(0, 7)}）`);
+    parent = ref.object.sha;
+    const pc = await api('GET', `/repos/${owner}/${args.repo}/git/commits/${parent}`);
+    baseTree = pc.tree.sha;
   } catch (e) {
     if (e.status !== 404 && e.status !== 409) throw e;
-    console.log('    → 空仓库，创建首次提交');
   }
 
-  const treeBody = baseTree ? { base_tree: baseTree, tree: entries } : { tree: entries };
-  const tree = await api('POST', `/repos/${owner}/${args.repo}/git/trees`, treeBody);
+  const tree = await api('POST', `/repos/${owner}/${args.repo}/git/trees`,
+    baseTree ? { base_tree: baseTree, tree: entries } : { tree: entries });
 
-  const commitBody = { message: created ? '初始化知识库站点' : '更新知识库站点', tree: tree.sha };
-  if (parentSha) commitBody.parents = [parentSha];
-  const commit = await api('POST', `/repos/${owner}/${args.repo}/git/commits`, commitBody);
+  const cBody = { message: created ? '初始化站点' : '更新站点', tree: tree.sha };
+  if (parent) cBody.parents = [parent];
+  const commit = await api('POST', `/repos/${owner}/${args.repo}/git/commits`, cBody);
 
-  if (parentSha) {
+  if (parent) {
     await api('PATCH', `/repos/${owner}/${args.repo}/git/refs/heads/${args.branch}`, { sha: commit.sha });
   } else {
-    await api('POST', `/repos/${owner}/${args.repo}/git/refs`, {
-      ref: `refs/heads/${args.branch}`, sha: commit.sha,
-    });
+    await api('POST', `/repos/${owner}/${args.repo}/git/refs`, { ref: `refs/heads/${args.branch}`, sha: commit.sha });
   }
-  console.log(`    ✓ 提交完成 ${commit.sha.slice(0, 7)}`);
+  console.log(`    ✓ ${commit.sha.slice(0, 7)}`);
 
-  /* 7. 开启 Pages */
   step(8, '开启 GitHub Pages…');
   if (args.private) {
     console.log('    ! 私有仓库无法在免费账号上使用 Pages，已跳过');
   } else {
     try {
-      await api('POST', `/repos/${owner}/${args.repo}/pages`, {
-        source: { branch: args.branch, path: '/' },
-      });
-      console.log('    ✓ Pages 已开启');
+      await api('POST', `/repos/${owner}/${args.repo}/pages`, { source: { branch: args.branch, path: '/' } });
+      console.log('    ✓ 已开启');
     } catch (e) {
-      if (e.status === 409) {
-        console.log('    ✓ Pages 之前已开启，沿用现有配置');
-      } else if (e.status === 403) {
-        console.log('    ! 令牌权限不足，无法开启 Pages。');
-        console.log('      请手动打开仓库 Settings → Pages → Source 选 main / root');
-      } else {
-        console.log(`    ! 开启 Pages 失败：${e.message}`);
-        console.log('      请手动打开仓库 Settings → Pages → Source 选 main / root');
-      }
+      if (e.status === 409) console.log('    ✓ 之前已开启');
+      else console.log(`    ! 开启失败（${e.message}），请在仓库 Settings → Pages 里选 main / root`);
     }
   }
 
-  /* 8. 完成 */
   const url = `https://${owner}.github.io/${args.repo}/`;
-  step(9, '完成 🎉');
-  console.log(`\n    访问链接：${url}`);
-  console.log('    首次发布通常需要 1–2 分钟生效，之后改内容几乎是秒级。\n');
-  console.log('    下一步：打开上面的链接 → 右上角「设置」→ 填入用户名、仓库名和令牌');
-  console.log('    之后就能在网页里直接写笔记，保存即上线。\n');
-
+  step(9, '完成');
+  console.log(`\n    ${url}\n`);
   return { owner, repo: args.repo, url, commit: commit.sha };
 }
 
 main().catch((e) => {
   console.error('\n❌ 部署失败：' + e.message);
-  if (e.status === 401) console.error('   → 令牌无效或已过期，请重新生成。');
-  if (e.status === 403) console.error('   → 令牌权限不足。classic 令牌需要勾选 repo 和 workflow。');
-  if (e.status === 404) console.error('   → 找不到资源，确认用户名和仓库名拼写。');
-  // 用 exitCode 而不是 process.exit()，避免 Node 在 keep-alive 连接上触发 libuv 断言
+  if (e.status === 401) console.error('   → 令牌无效或已过期');
+  if (e.status === 403) console.error('   → 令牌权限不足，classic 令牌需要勾选 repo 和 workflow');
+  if (e.status === 404) console.error('   → 找不到资源，确认用户名和仓库名');
   process.exitCode = 1;
 });

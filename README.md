@@ -1,246 +1,111 @@
-# 知识库 · 在线分享站点
+# 我的空间
 
-一个**零构建**的知识分享站点。托管在 GitHub Pages 上，自带 `https://` 链接，
-可以在网页里直接写笔记，保存后几乎立刻生效，每篇笔记都有独立链接可以分享。
+一个托管在 GitHub Pages 上的个人内容站。文字、图片、可交互的 HTML 页面，
+都在同一个界面里管理，浏览器打开就能改，改完几秒生效。
+
+没有构建步骤 —— 纯 HTML + CSS + JS。
 
 ---
 
-## 它长什么样
+## 网址结构
 
-- **主链接**：根目录 `index.html`，默认是一张欢迎页（可换成你自己的 HTML）
-- **知识库**（`/kb.html`）：
-  - **首页**：卡片列表 + 全文搜索 + 标签筛选
-  - **阅读页**：Markdown 渲染（表格、代码块、引用、任务清单都支持）
-  - **写笔记**：网页内编辑器，左边写 Markdown 右边实时预览
-  - **插入图片**：`Ctrl+V` 粘贴、拖拽、或点「📷 插入图片」按钮，图片自动上传到仓库
-  - **HTML 页面**：上传任意 `.html` 文件到仓库，一键设为主页
-  - **设置页**：填仓库信息和访问令牌
+| 路径 | 内容 |
+| --- | --- |
+| `/` | 站点首页（内容列表） |
+| `/#/i/<id>` | 某一条内容 |
+| `/#/new` | 新建 |
+| `/#/settings` | 设置 |
+| `/content/images/…` | 上传的图片 |
+| `/content/pages/…` | 上传的 HTML 页面 |
 
-站点没有任何构建步骤 —— 纯 HTML + CSS + JS。改完文件刷新浏览器就是最新效果，
-不存在「构建失败」这种问题。
+---
+
+## 三种内容
+
+| 类型 | 说明 |
+| --- | --- |
+| **文字** | Markdown 排版。图片可以直接粘贴或拖进编辑框，会自动上传。 |
+| **图片** | 单张图片作为一个条目，卡片上直接显示。 |
+| **页面** | 带交互的 HTML，详情页里用 iframe 内嵌运行，也可以新窗口打开。 |
+
+在「新建」里选类型，填完保存即可。「设置」页一次配置好仓库和令牌之后，
+日常使用不需要再碰任何命令行。
 
 ---
 
 ## 目录结构
 
 ```
-knowledge-hub/
-├── index.html                  ⭐ 主链接显示的页面（默认「我的主页」，可被上传的 HTML 覆盖）
-├── kb.html                     知识库入口 —— 网址 /kb.html
-├── demo.html                   HTML 页面示例（可删）
+├── index.html                  站点入口
 ├── assets/
-│   ├── app.js                  知识库全部逻辑：路由、渲染、GitHub 读写、图片与 HTML 上传
-│   ├── style.css               样式（自动适配深色模式）
-│   ├── config.js               站点配置（部署脚本会填 owner/repo）
-│   └── vendor/
-│       ├── marked.min.js       Markdown 解析（本地内置，不依赖 CDN）
-│       └── purify.min.js       HTML 净化，防 XSS
-├── content/                    所有笔记，一篇一个 .md 文件
-│   ├── images/                 笔记里粘贴上传的图片
-│   ├── welcome.md
-│   └── markdown-guide.md
-├── data/index.json             目录清单，由脚本或编辑器自动维护
+│   ├── app.js                  全部逻辑
+│   ├── style.css               样式
+│   ├── config.js               仓库配置（部署脚本会填）
+│   └── vendor/                 marked + DOMPurify（本地内置，不依赖 CDN）
+├── content/
+│   ├── *.md                    文字内容
+│   ├── images/                 图片
+│   └── pages/                  交互页面
+├── data/library.json           内容索引（自动维护，不要手改）
 ├── tools/
-│   ├── lib/notes.mjs           front matter 解析等公共逻辑
-│   ├── build-index.mjs         扫描 content/ 重新生成清单
-│   ├── deploy-via-api.mjs      一键部署到 GitHub Pages（纯 API）
-│   ├── check-github.mjs        检查 GitHub 网络连通性
-│   └── dev-server.mjs          本地预览服务器
+│   ├── lib/library.mjs         解析与对齐逻辑
+│   ├── build-index.mjs         扫描 content/ 对齐索引
+│   ├── deploy-via-api.mjs      部署（纯 API）
+│   ├── check-github.mjs        网络连通性检查
+│   └── dev-server.mjs          本地预览
 └── .github/workflows/
-    └── build-index.yml         推送后自动更新目录清单
+    └── build-index.yml         推送后自动对齐索引
 ```
-
-## 网址结构
-
-| 网址 | 内容 |
-| --- | --- |
-| `https://<用户名>.github.io/<仓库名>/` | **主链接** —— 显示根目录的 `index.html` |
-| `https://<用户名>.github.io/<仓库名>/kb.html` | 知识库（写笔记、看笔记） |
-| `https://<用户名>.github.io/<仓库名>/任意文件名.html` | 你上传的任意 HTML 页面 |
-
-**想换掉主链接显示的内容？** 进入知识库 → 顶部 **🧩 HTML 页面** → 上传 `.html` → 点「设为主页」。
-
-> 部署脚本会识别 `index.html` 里的 `kb-starter` 标记：标记还在说明是系统默认页，可以更新；
-> 一旦你设了自己的主页，标记消失，**部署脚本从此不再覆盖它**（除非显式加 `--force-index`）。
 
 ---
 
 ## 本地预览
 
 ```powershell
-cd knowledge-hub
 node tools/dev-server.mjs 8080
 ```
 
-然后浏览器打开 http://localhost:8080/
+打开 http://localhost:8080/
 
 ---
 
-## 部署到 GitHub Pages
-
-### 前置：注册账号
-
-打开 https://github.com/signup 注册。**记住你的用户名**，后面要用。
-
-> 如果 `github.com` 打不开，先运行 `pwsh -File tools\check-github.ps1` 看诊断结果。
-> 这个阻断通常是间歇性的，换个网络（比如手机热点）往往就通了。
-
-### 第二步：生成令牌
-
-打开 https://github.com/settings/tokens/new
-
-- **Note**：随便填，比如 `knowledge-hub`
-- **Expiration**：建议 90 天
-- **Select scopes**：勾选 **`repo`** 和 **`workflow`**
-
-生成后复制那串 `ghp_` 开头的令牌（只显示一次，记得先存好）。
-
-### 第三步：一键部署
+## 部署
 
 ```powershell
-cd knowledge-hub
-node tools/deploy-via-api.mjs --token ghp_你的令牌 --repo knowledge-hub --title "我的知识库"
+node tools/deploy-via-api.mjs --repo <仓库名>
 ```
 
-脚本会自动完成：
+会依次完成：校验令牌 → 创建或更新仓库 → 按线上内容重建索引 → 上传文件 →
+提交 → 开启 Pages → 打印访问链接。全程只访问 `api.github.com`。
 
-1. 校验令牌
-2. 创建仓库（已存在则更新）
-3. 生成内容目录清单
-4. 把用户名/仓库名写进 `assets/config.js`
-5. 上传全部站点文件
-6. 创建提交
-7. 开启 GitHub Pages
-8. 打印访问链接
+**令牌**：classic token，勾选 `repo` 和 `workflow` 两项。
 
-**全程只访问 `api.github.com`**，不需要 `git push`，也不需要打开 `github.com` 网页。
-
-### 第四步：开始用
-
-等 1–2 分钟，打开脚本打印的链接：
-
-```
-https://<你的用户名>.github.io/knowledge-hub/
-```
-
-点右上角 **⚙️ 设置**，填入用户名、仓库名、令牌，保存。
-之后就能点 **✏️ 写笔记** 在网页里直接写了，保存即上线。
+**索引保护**：`data/library.json` 永远根据线上真实内容重建，
+不会用本地那份覆盖，所以网页上新增的内容不会丢。
 
 ---
 
-## 发布 HTML 页面
+## 内容数据
 
-GitHub Pages 会把仓库里**每一个** `.html` 文件变成一个网址。所以发布 HTML 有三种方式：
+`data/library.json` 由脚本或编辑器自动维护，结构如下：
 
-### 方式一：在网页里上传（推荐）
-
-1. 打开 `https://<用户名>.github.io/<仓库名>/kb.html`
-2. 顶部点 **🧩 HTML 页面**
-3. 点 **📤 上传 HTML 文件**，选你的 `.html`
-4. 上传完会出现在列表里，可以「打开」「复制链接」「设为主页」「删除」
-
-上传后的地址规律：文件名 `作业1.html` → `…/knowledge-hub/作业1.html`
-
-### 方式二：GitHub 网页版
-
-打开 `https://github.com/<用户名>/<仓库名>/upload/main`，把文件拖进去，提交即可。
-
-### 方式三：本地放文件 + 部署
-
-把 `.html` 放到项目根目录，然后跑 `node tools/deploy-via-api.mjs --repo <仓库名>`。
-
-> ⚠️ **注意**：`index.html` 是主链接，部署脚本默认**不会覆盖**你已设为主页的版本。
-> 确实需要强制覆盖时才加 `--force-index`。
-
----
-
-## 插图
-
-在编辑器里有三种方式插入图片：
-
-1. **截图后直接 `Ctrl+V` 粘贴** 到正文框
-2. **把图片文件拖拽** 到正文框
-3. 点 **「📷 插入图片」** 按钮选文件
-
-图片会自动上传到仓库的 `content/images/` 目录，并插入这样的 Markdown：
-
-```markdown
-![图片](content/images/文件名.png)
+```json
+{
+  "site": { "title": "…", "desc": "…" },
+  "items": [
+    { "id": "…", "type": "note|image|page", "title": "…",
+      "date": "2026-01-01", "tags": [], "summary": "…",
+      "path": "content/…", "cover": "content/images/…" }
+  ]
+}
 ```
 
-**关于生效时间：**
-
-- 编辑时的**预览区立刻显示**，写的时候不受影响
-- 保存后，**你自己**（已配令牌）打开笔记也能立刻看到——脚本会走 API 取原图
-- **其他访客**需要等 GitHub Pages 重新构建，通常 1–2 分钟
-
-**关于体积：** 宽度超过 1600px 的图片会自动等比缩小后再上传，避免仓库膨胀。
-单张原图上限 25MB。GIF 动图不做处理，保持原始动画；iPhone 的 HEIC 格式会自动转成 JPEG。
+`build-index.mjs` 会依据 `content/` 下的真实文件对齐 `note` 与 `page` 条目，
+并保留图片条目和站点信息。
 
 ---
 
-## 也可以不用网页编辑器
+## 换成自己的域名
 
-直接在 `content/` 下新建 `.md` 文件也能写：
-
-```markdown
----
-title: 我的第一篇笔记
-tags: 读书, 方法
-date: 2026-02-14
----
-
-正文写在这里，支持 Markdown。
-```
-
-然后重新部署一次即可：
-
-```powershell
-node tools/build-index.mjs
-node tools/deploy-via-api.mjs --token ghp_你的令牌 --repo knowledge-hub
-```
-
-`.github/workflows/build-index.yml` 会在每次推送后自动刷新目录清单，
-所以如果你用 git 推送，连 `build-index` 都不用手动跑。
-
----
-
-## 关于「实时更新」的说明
-
-| 场景 | 生效速度 |
-| --- | --- |
-| 你自己（已填令牌）在网页上编辑后刷新 | **几秒**（走 GitHub API，绕过 CDN 缓存） |
-| 其他访客打开链接 | 通常 1–2 分钟（等 GitHub Pages 重新发布 + CDN 刷新） |
-
-这是静态托管的固有特性：没有服务器，就没有真正的「推送」。但对你本人来说，
-编辑体验是接近实时的。
-
----
-
-## 安全须知
-
-- **令牌只存在你自己浏览器的 localStorage 里**，不会提交到仓库，也不会发给第三方。
-- 但令牌等同于你账号的密码（`repo` 权限），**不要**把它贴到聊天记录、截图或公开的地方。
-- 如果怀疑泄露，立刻到 https://github.com/settings/tokens 撤销。
-- 仓库是**公开**的，任何人都能看到内容 —— 这本来就是「分享」的意思。
-  如果内容需要保密，不要用这个方案。
-- 免费账号的**私有仓库无法使用 GitHub Pages**。
-
----
-
-## 常见问题
-
-**Q：改动不生效？**
-先强制刷新（Ctrl+F5）。GitHub Pages 有缓存，等 1–2 分钟。
-
-**Q：保存时报 403？**
-令牌权限不够。重新生成，确保勾选 `repo` 和 `workflow`。
-
-**Q：保存时报 404？**
-`assets/config.js` 里的用户名或仓库名拼错了。到设置页检查。
-
-**Q：想改站名？**
-设置页里改不了站名，直接编辑 `assets/config.js` 的 `title` 和 `desc`，重新部署。
-
-**Q：想删掉示例笔记？**
-在阅读页点「删除」，或用网页编辑器删除 `content/welcome.md` 和 `content/markdown-guide.md`。
+仓库 Settings → Pages → Custom domain 填入域名，
+然后在域名商处把 CNAME 指向 `<用户名>.github.io`。

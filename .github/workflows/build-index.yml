@@ -1,15 +1,15 @@
-name: 自动维护目录清单
+name: 对齐素材库
 
-# 每次推送后重新扫描 content/*.md，更新 data/index.json，
-# 这样即使你是在本地用编辑器写 Markdown 再 push，列表页也能自动更新。
+# 每次推送后扫描 content/ 与 content/pages/，更新 data/library.json。
+# 这样在本地直接写 Markdown / HTML 再 push，列表页也会自动更新。
 
 on:
   push:
     branches: [main]
     paths:
-      # 只在「笔记」变动时触发。用 content/*.md 而不是 content/**，
-      # 避免上传图片（content/images/）也触发一次多余构建。
-      - 'content/*.md'
+      - 'content/**/*.md'
+      - 'content/pages/**'
+      - 'tools/lib/library.mjs'
       - 'tools/build-index.mjs'
       - '.github/workflows/build-index.yml'
   workflow_dispatch:
@@ -35,18 +35,18 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 生成 data/index.json
+      - name: 对齐 data/library.json
         run: node tools/build-index.mjs
 
       - name: 有变化则提交
         run: |
-          if [ -z "$(git status --porcelain data/index.json)" ]; then
-            echo "目录清单已是最新，无需提交。"
+          if [ -z "$(git status --porcelain data/library.json)" ]; then
+            echo "素材库已是最新，无需提交。"
             exit 0
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/index.json
-          git commit -m "自动更新目录清单 [skip-index]"
+          git add data/library.json
+          git commit -m "更新素材库 [skip-index]"
           git pull --rebase --autostash origin main
           git push origin HEAD:main

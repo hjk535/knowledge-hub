@@ -1,89 +1,40 @@
 <!DOCTYPE html>
-<!-- kb-starter: 这是系统自带的默认主页。一旦你在「HTML 页面」里设了自己的主页，
-     这个标记就会消失，部署脚本从此不会再覆盖 index.html。请勿手动删除本行，除非你确实想换掉它。 -->
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>我的主页</title>
-<meta name="description" content="我的个人主页与作业展示。">
-<style>
-  * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    margin: 0; min-height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    background: #f6f7f9; color: #1f2328; padding: 24px;
-  }
-  @media (prefers-color-scheme: dark) {
-    body { background: #0d1117; color: #e6edf3; }
-    .card { background: #161b22 !important; border-color: #30363d !important; }
-    .sub, .tip { color: #8b949e !important; }
-    .box { background: #1c2128 !important; border-color: #30363d !important; }
-    code { background: #1c2128 !important; }
-    .btn { background: #21262d !important; border-color: #30363d !important; color: #e6edf3 !important; }
-  }
-  .card {
-    background: #fff; border: 1px solid #e3e6ea; border-radius: 16px;
-    padding: 44px 40px; max-width: 640px; width: 100%;
-    box-shadow: 0 4px 24px rgba(16, 24, 40, .07);
-    text-align: center;
-  }
-  .avatar {
-    width: 76px; height: 76px; margin: 0 auto 18px;
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #2563eb, #7c3aed);
-    font-size: 34px;
-  }
-  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: .5px; }
-  .sub { margin: 0 0 26px; color: #656d76; font-size: 15px; }
-  .box {
-    background: #f6f8fa; border: 1px solid #e3e6ea; border-radius: 10px;
-    padding: 16px 20px; font-size: 14px; line-height: 1.9;
-    text-align: left; margin-bottom: 26px; color: #444c56;
-  }
-  code {
-    background: #eef1f4; padding: 2px 7px; border-radius: 5px;
-    font-size: 13px; font-family: ui-monospace, Consolas, monospace;
-  }
-  .btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  .btn {
-    display: inline-block; padding: 10px 22px; border-radius: 9px;
-    border: 1px solid #d8dee4; background: #fff; color: #1f2328;
-    text-decoration: none; font-size: 14.5px; font-weight: 600;
-    transition: .15s;
-  }
-  .btn:hover { border-color: #2563eb; color: #2563eb; }
-  .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
-  .btn.primary:hover { filter: brightness(1.08); color: #fff; }
-  .tip { margin-top: 22px; font-size: 12.5px; color: #8b949e; line-height: 1.8; }
-</style>
+<title>首页</title>
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2318181b'/><circle cx='50' cy='50' r='17' fill='%23fbfbfa'/></svg>">
 </head>
 <body>
-  <div class="card">
-    <div class="avatar">👋</div>
 
-    <h1>我的主页</h1>
-    <p class="sub">欢迎来到我的个人站点</p>
-
-    <div class="box">
-      这是根目录的 <code>index.html</code>，也就是主链接 <code>/knowledge-hub/</code> 显示的内容。<br><br>
-      <b>想换成你自己的 HTML？</b><br>
-      进入知识库 → 点顶部 <b>🧩 HTML 页面</b> → 上传你的 <code>.html</code> 文件 → 点「设为主页」。<br>
-      几秒后刷新本页就会变成你的作品。
+<header id="topbar">
+  <div class="bar">
+    <a class="logo" id="site-title" href="#/"></a>
+    <div class="bar-right">
+      <button class="icon-btn" id="btn-search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+      <a class="icon-btn" id="btn-settings" href="#/settings" aria-label="设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10.6 3.09V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 16.1 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.4 9v.09a1.65 1.65 0 0 0 1.51 1H22a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </a>
     </div>
-
-    <div class="btns">
-      <a class="btn primary" href="kb.html">📚 进入我的知识库</a>
-      <a class="btn" href="demo.html">📄 看 HTML 示例</a>
-    </div>
-
-    <p class="tip">
-      提示：这个文件可以直接改，也可以用上传功能覆盖。<br>
-      只要文件在仓库里，就自动拥有一个 https:// 开头的网址。
-    </p>
   </div>
+</header>
+
+<main id="app"></main>
+
+<button id="fab" aria-label="新建">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<div id="toast"></div>
+
+<script src="assets/vendor/marked.min.js"></script>
+<script src="assets/vendor/purify.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.js"></script>
 </body>
 </html>

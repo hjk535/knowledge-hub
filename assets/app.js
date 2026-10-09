@@ -1,25 +1,25 @@
 /* ============================================================
-   知识库 · 单页应用
-   - 未配置令牌：数据从 GitHub Pages 静态文件读取（快、无限制、有缓存）
-   - 已配置令牌：数据走 GitHub API 读取（绕过 CDN 缓存，秒级生效），并可直接提交
+   统一内容站
+   文字 / 图片 / 交互页面，同一种数据模型、同一套界面
    ============================================================ */
 (function () {
   'use strict';
 
-  /* ---------------- 配置 ---------------- */
-  var FILE_DEFAULTS = window.KB_CONFIG || {};
-  var LS_CFG = 'kb.config.v1';
-  var LS_TOKEN = 'kb.token.v1';
+  /* ---------------------------------------------------------
+     配置
+     --------------------------------------------------------- */
+  var FILE_CFG = window.SITE_CONFIG || {};
+  var LS_CFG = 'site.cfg.v1';
+  var LS_TOKEN = 'site.token.v1';
+  var LIB_PATH = 'data/library.json';
 
-  var CFG = Object.assign({
-    owner: '', repo: '', branch: 'main',
-    title: '我的知识库', desc: ''
-  }, FILE_DEFAULTS, readJSON(LS_CFG) || {});
+  var CFG = Object.assign({ owner: '', repo: '', branch: 'main', title: '我的空间', desc: '' },
+    FILE_CFG, readJSON(LS_CFG) || {});
 
   function readJSON(k) {
     try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; }
   }
-  function persistCfg() {
+  function saveCfg() {
     localStorage.setItem(LS_CFG, JSON.stringify({
       owner: CFG.owner, repo: CFG.repo, branch: CFG.branch
     }));
@@ -28,25 +28,44 @@
   function setToken(t) {
     if (t) localStorage.setItem(LS_TOKEN, t); else localStorage.removeItem(LS_TOKEN);
   }
+  function isAuthor() { return !!getToken(); }
   function configured() { return !!(CFG.owner && CFG.repo); }
 
-  /* ---------------- 小工具 ---------------- */
-  function $(sel, root) { return (root || document).querySelector(sel); }
+  /* ---------------------------------------------------------
+     工具
+     --------------------------------------------------------- */
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  function fmtDate(s) {
-    if (!s) return '';
-    var d = new Date(s);
-    if (isNaN(d.getTime())) return String(s);
-    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-  }
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
-  function todayISO() {
+  function today() {
     var d = new Date();
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+  function fmtDate(s) {
+    if (!s) return '';
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+    if (m) return m[1] + '.' + m[2] + '.' + m[3];
+    return String(s);
+  }
+  function uid(prefix) {
+    return (prefix || '') + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+  function slugify(s) {
+    var b = String(s || '').toLowerCase().trim()
+      .replace(/[^\w\u4e00-\u9fa5\s-]/g, '').replace(/\s+/g, '-')
+      .replace(/-+/g, '-').replace(/^-|-$/g, '');
+    return b || uid('n');
+  }
+  function debounce(fn, ms) {
+    var t; return function () {
+      var a = arguments, self = this;
+      clearTimeout(t); t = setTimeout(function () { fn.apply(self, a); }, ms);
+    };
   }
 
   var toastTimer;
@@ -55,15 +74,536 @@
     el.textContent = msg;
     el.className = 'show' + (kind ? ' ' + kind : '');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.className = ''; }, kind === 'err' ? 6000 : 3000);
+    toastTimer = setTimeout(function () { el.className = ''; }, kind === 'err' ? 6000 : 2600);
+  }
+  function spin(label) {
+    return '<div class="loading"><span class="spin"></span>' + (label ? esc(label) : '') + '</div>';
   }
 
-  /* ---------------- Front matter ---------------- */
-  function parseNote(text) {
-    var meta = {}, body = text;
-    var m = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+  function markdown(md) {
+    var html = window.marked.parse(String(md || ''), { gfm: true, breaks: false });
+    return window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+  }
+
+  function stripFences(s) {
+    return String(s || '').replace(/(`{3,})([\s\S]*?)\1/g, ' ');
+  }
+
+  function plainText(md, title, len) {
+    var t = stripFences(md)
+      .replace(/<!--[\s\S]*?-->/g, ' ')
+      .replace(/`[^`]*`/g, ' ')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/^\s*\|.*\|\s*$/gm, ' ')
+      .replace(/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/gm, ' ')
+      .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+      .replace(/^\s{0,3}>\s?/gm, '')
+      .replace(/[*_~|]/g, '')
+      .replace(/\s+/g, ' ').trim();
+    var tt = String(title || '').trim();
+    if (tt && t.indexOf(tt) === 0) t = t.slice(tt.length).trim();
+    len = len || 96;
+    return t.length > len ? t.slice(0, len) + '…' : t;
+  }
+
+  function firstImage(md) {
+    var clean = stripFences(md).replace(/`[^`]*`/g, ' ');
+    var m = /!\[[^\]]*\]\(([^)\s]+)/.exec(clean);
+    if (!m) return null;
+    var src = m[1];
+    if (/^https?:/i.test(src)) return null;
+    if (!/\.(png|jpe?g|gif|webp|svg|avif)(\?|$)/i.test(src) && src.indexOf('/') < 0) return null;
+    return src;
+  }
+
+  /* ---------------------------------------------------------
+     GitHub
+     --------------------------------------------------------- */
+  var API = 'https://api.github.com';
+
+  function gh(path, opts) {
+    opts = opts || {};
+    var headers = { Accept: opts.accept || 'application/vnd.github+json' };
+    var t = getToken();
+    if (t && !opts.anon) headers.Authorization = 'Bearer ' + t;
+    if (opts.body) headers['Content-Type'] = 'application/json';
+    return fetch(API + path, {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+      cache: opts.anon ? 'default' : 'no-store'
+    }).then(function (res) {
+      if (!res.ok) {
+        return res.text().then(function (txt) {
+          var msg = 'HTTP ' + res.status;
+          try { msg = JSON.parse(txt).message || msg; } catch (e) { }
+          var err = new Error(msg);
+          err.status = res.status;
+          throw err;
+        });
+      }
+      return opts.raw ? res.text() : res.json();
+    });
+  }
+
+  function rp(p) {
+    return '/repos/' + encodeURIComponent(CFG.owner) + '/' + encodeURIComponent(CFG.repo) + p;
+  }
+
+  function apiRead(path) {
+    return gh(rp('/contents/' + path) + '?ref=' + encodeURIComponent(CFG.branch), {
+      accept: 'application/vnd.github.raw+json', raw: true, anon: !isAuthor()
+    }).catch(function (e) { if (e.status === 404) return null; throw e; });
+  }
+
+  function staticRead(path) {
+    return fetch(path + '?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.text() : null; })
+      .catch(function () { return null; });
+  }
+
+  /* 有令牌走 API（新鲜），否则走 Pages 静态文件（快且无限额） */
+  function readFile(path) {
+    if (!configured()) return staticRead(path);
+    return apiRead(path).then(function (txt) {
+      if (txt != null) return txt;
+      return staticRead(path).then(function (s) {
+        return s != null ? s : apiRead(path);
+      });
+    }).catch(function () { return staticRead(path); });
+  }
+
+  /* 写操作串行 + 冲突重试 */
+  var chain = Promise.resolve();
+  function queue(task) {
+    var run = chain.then(task, task);
+    chain = run.catch(function () { });
+    return run;
+  }
+
+  function commit(files, message, attempt) {
+    attempt = attempt || 1;
+    var head;
+    return gh(rp('/git/ref/heads/' + encodeURIComponent(CFG.branch)))
+      .then(function (ref) {
+        head = ref.object.sha;
+        return gh(rp('/git/commits/' + head));
+      })
+      .then(function (c) {
+        var base = c.tree.sha;
+        return files.reduce(function (p, f) {
+          return p.then(function (acc) {
+            if (f.remove) {
+              acc.push({ path: f.path, mode: '100644', type: 'blob', sha: null });
+              return acc;
+            }
+            return gh(rp('/git/blobs'), {
+              method: 'POST', body: { content: f.content, encoding: f.encoding || 'utf-8' }
+            }).then(function (b) {
+              acc.push({ path: f.path, mode: '100644', type: 'blob', sha: b.sha });
+              return acc;
+            });
+          });
+        }, Promise.resolve([])).then(function (entries) {
+          return gh(rp('/git/trees'), { method: 'POST', body: { base_tree: base, tree: entries } });
+        });
+      })
+      .then(function (tree) {
+        return gh(rp('/git/commits'), {
+          method: 'POST', body: { message: message, tree: tree.sha, parents: [head] }
+        });
+      })
+      .then(function (c) {
+        return gh(rp('/git/refs/heads/' + encodeURIComponent(CFG.branch)), {
+          method: 'PATCH', body: { sha: c.sha, force: false }
+        });
+      })
+      .catch(function (err) {
+        if ((err.status === 422 || err.status === 409) && attempt < 4) {
+          return new Promise(function (r) { setTimeout(r, 320 * attempt); })
+            .then(function () { return commit(files, message, attempt + 1); });
+        }
+        throw err;
+      });
+  }
+
+  function friendly(e) {
+    var m = String((e && e.message) || e || '');
+    if (/not a fast forward|422/i.test(m)) return '内容刚好被其他操作更新，请重试';
+    if (/bad credentials|401/i.test(m)) return '令牌无效或已过期';
+    if (/403/.test(m)) return '令牌权限不足，需要 repo 和 workflow';
+    if (/404/.test(m)) return '找不到仓库，请检查设置';
+    if (/rate limit/i.test(m)) return '操作太频繁，稍后再试';
+    if (/Failed to fetch|NetworkError/i.test(m)) return '网络中断，请重试';
+    return m;
+  }
+
+  /* ---------------------------------------------------------
+     素材库
+     --------------------------------------------------------- */
+  var LIB = { site: { title: '', desc: '' }, items: [] };
+  var loaded = false;
+
+  function normalize(raw) {
+    var o = raw;
+    if (typeof raw === 'string') { try { o = JSON.parse(raw); } catch (e) { return null; } }
+    if (!o) return null;
+    // 兼容旧格式：{ notes: [...] }
+    if (!Array.isArray(o.items) && Array.isArray(o.notes)) {
+      o.items = o.notes.map(function (n) {
+        return {
+          id: n.slug, type: 'note', title: n.title, date: n.date || '',
+          tags: n.tags || [], summary: n.summary || '', path: 'content/' + n.slug + '.md'
+        };
+      });
+    }
+    if (!Array.isArray(o.items)) return null;
+    return o;
+  }
+
+  function loadLibrary(force) {
+    if (loaded && !force) return Promise.resolve(LIB);
+    return readFile(LIB_PATH).then(function (raw) {
+      var o = normalize(raw);
+      if (o) LIB = { site: o.site || {}, items: o.items };
+      loaded = true;
+      return LIB;
+    });
+  }
+
+  function libJSON() {
+    return JSON.stringify({
+      generated: new Date().toISOString(),
+      site: LIB.site,
+      items: LIB.items
+    }, null, 2) + '\n';
+  }
+
+  function itemById(id) {
+    for (var i = 0; i < LIB.items.length; i++) if (LIB.items[i].id === id) return LIB.items[i];
+    return null;
+  }
+  function sorted() {
+    return LIB.items.slice().sort(function (a, b) {
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    });
+  }
+  function itemURL(it) { return location.origin + location.pathname + '#/i/' + encodeURIComponent(it.id); }
+  function assetURL(p) { return location.origin + location.pathname.replace(/[^\/]*$/, '') + p; }
+
+  /* ---------------------------------------------------------
+     图片
+     --------------------------------------------------------- */
+  var localBlobs = {};
+  var MAX_IMG = 25 * 1024 * 1024;
+  var MAX_EDGE = 1800;
+  var WEB_SAFE = { 'image/png': 1, 'image/jpeg': 1, 'image/webp': 1 };
+
+  function fileToDataURL(f) {
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onload = function () { res(r.result); };
+      r.onerror = function () { rej(new Error('读取失败')); };
+      r.readAsDataURL(f);
+    });
+  }
+  function decode(src) {
+    return new Promise(function (res, rej) {
+      var i = new Image();
+      i.onload = function () { res(i); };
+      i.onerror = function () { rej(new Error('无法解析该图片')); };
+      i.src = src;
+    });
+  }
+
+  /* 需要时缩小，非 Web 格式统一转 JPEG */
+  function prepareImage(file) {
+    return fileToDataURL(file).then(function (dataURL) {
+      if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
+        return { dataURL: dataURL, mime: file.type };
+      }
+      return decode(dataURL).then(function (img) {
+        var w = img.width, h = img.height;
+        var shrink = w > MAX_EDGE;
+        var convert = !WEB_SAFE[file.type];
+        if (!shrink && !convert) return { dataURL: dataURL, mime: file.type };
+        if (shrink) { h = Math.max(1, Math.round(h * MAX_EDGE / w)); w = MAX_EDGE; }
+        var cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        var mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        return { dataURL: cv.toDataURL(mime, 0.86), mime: mime };
+      }).catch(function () { return { dataURL: dataURL, mime: file.type }; });
+    });
+  }
+
+  var EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'image/svg+xml': 'svg' };
+
+  function uploadImage(file) {
+    if (!isAuthor()) return Promise.reject(new Error('未配置令牌'));
+    if (file.size > MAX_IMG) return Promise.reject(new Error('图片超过 25MB'));
+    return prepareImage(file).then(function (r) {
+      var ext = EXT[r.mime] || 'png';
+      var name = uid('img') + '.' + ext;
+      var path = 'content/images/' + name;
+      var b64 = String(r.dataURL).split(',')[1];
+      localBlobs[path] = r.dataURL;
+      return queue(function () {
+        return commit([{ path: path, content: b64, encoding: 'base64' }], '上传图片 ' + name);
+      }).then(function () { return path; });
+    });
+  }
+
+  function patchBlobs(root) {
+    $$('img', root).forEach(function (img) {
+      var src = img.getAttribute('src') || '';
+      var m = /content\/images\/([^\/?#]+)/.exec(src);
+      if (m && localBlobs['content/images/' + m[1]]) {
+        img.src = localBlobs['content/images/' + m[1]];
+      }
+    });
+  }
+
+  /* 有令牌时用 API 取原图，刚上传的不必等构建 */
+  function hydrateImages(root) {
+    if (!isAuthor() || !configured()) return;
+    $$('img', root).forEach(function (img) {
+      var src = img.getAttribute('src') || '';
+      if (/^(https?:|data:)/i.test(src)) return;
+      var m = /content\/images\/([^\/?#]+)/.exec(src);
+      if (!m) return;
+      var key = 'content/images/' + m[1];
+      if (localBlobs[key]) { img.src = localBlobs[key]; return; }
+      fetch(API + rp('/contents/' + key) + '?ref=' + encodeURIComponent(CFG.branch), {
+        headers: { Authorization: 'Bearer ' + getToken(), Accept: 'application/vnd.github.raw+json' },
+        cache: 'no-store'
+      }).then(function (r) { return r.ok ? r.blob() : null; })
+        .then(function (b) {
+          if (!b || b.size > 6 * 1024 * 1024) return;
+          var fr = new FileReader();
+          fr.onload = function () { img.src = fr.result; localBlobs[key] = fr.result; };
+          fr.readAsDataURL(b);
+        }).catch(function () { });
+    });
+  }
+
+  /* ---------------------------------------------------------
+     路由
+     --------------------------------------------------------- */
+  function route() {
+    var h = location.hash.replace(/^#/, '') || '/';
+    var seg = h.split('/').filter(Boolean).map(function (s) {
+      try { return decodeURIComponent(s); } catch (e) { return s; }
+    });
+    if (!seg.length) return { v: 'list' };
+    if (seg[0] === 'i' && seg[1]) return { v: 'item', id: seg.slice(1).join('/') };
+    if (seg[0] === 'new') return { v: 'edit', type: seg[1] || null, id: null };
+    if (seg[0] === 'edit' && seg[1]) return { v: 'edit', id: seg.slice(1).join('/'), type: null };
+    if (seg[0] === 'settings') return { v: 'settings' };
+    return { v: 'list' };
+  }
+  function go(hash) {
+    if (location.hash === hash) render(); else location.hash = hash;
+  }
+
+  function copy(text, msg) {
+    function fb() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); toast(msg || '已复制'); }
+      catch (e) { toast('复制失败', 'err'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { toast(msg || '已复制'); }, fb);
+    } else fb();
+  }
+
+  /* ---------------------------------------------------------
+     视图：列表
+     --------------------------------------------------------- */
+  var q = '';
+  var searchOpen = false;
+
+  function viewList() {
+    return loadLibrary().then(function () {
+      var items = sorted();
+      var kw = q.trim().toLowerCase();
+      var shown = kw ? items.filter(function (it) {
+        return ((it.title || '') + ' ' + (it.summary || '') + ' ' + (it.tags || []).join(' '))
+          .toLowerCase().indexOf(kw) >= 0;
+      }) : items;
+
+      document.title = LIB.site.title || CFG.title || '我的空间';
+      $('#site-title').textContent = document.title;
+
+      var head = '<div class="page-head"><h1>' + esc(LIB.site.title || CFG.title || '我的空间') + '</h1>' +
+        (LIB.site.desc ? '<p>' + esc(LIB.site.desc) + '</p>' : '') + '</div>';
+
+      var search = '<div class="search-wrap' + (searchOpen ? ' open' : '') + '" id="sp"><div>' +
+        '<input class="search-input" id="sq" type="search" placeholder="搜索" value="' + esc(q) + '">' +
+        '</div></div>';
+
+      var body;
+      if (!items.length) {
+        body = '<div class="empty"><h2>还没有内容</h2><p>' +
+          (isAuthor() ? '点右下角的按钮开始。' : '') + '</p></div>';
+      } else if (!shown.length) {
+        body = '<div class="empty"><p>没有匹配「' + esc(q) + '」的内容</p></div>';
+      } else {
+        body = '<div class="grid">' + shown.map(card).join('') + '</div>';
+      }
+
+      $('#app').innerHTML = head + search + body;
+
+      var input = $('#sq');
+      if (input) {
+        input.addEventListener('input', debounce(function () {
+          q = input.value;
+          viewList();
+        }, 160));
+      }
+      hydrateImages($('#app'));
+      patchBlobs($('#app'));
+    });
+  }
+
+  function card(it) {
+    var media = '';
+    if (it.type === 'image') {
+      media = '<div class="card-cover"><img src="' + esc(it.path) + '" alt="" loading="lazy"></div>';
+    } else if (it.type === 'note' && it.cover) {
+      media = '<div class="card-cover"><img src="' + esc(it.cover) + '" alt="" loading="lazy"></div>';
+    }
+    var meta = [];
+    if (it.date) meta.push('<span>' + esc(fmtDate(it.date)) + '</span>');
+    if (it.type === 'page') meta.push('<span class="dot"></span><span>页面</span>');
+    else if (it.type === 'image') meta.push('<span class="dot"></span><span>图片</span>');
+
+    return '<a class="card' + (media ? '' : ' plain') + '" href="#/i/' + encodeURIComponent(it.id) + '">' + media +
+      '<div class="card-body">' +
+      '<h3>' + esc(it.title || '未命名') + '</h3>' +
+      (it.summary ? '<p class="excerpt">' + esc(it.summary) + '</p>' : '') +
+      '<div class="card-foot">' + meta.join('') + '</div>' +
+      '</div></a>';
+  }
+
+  /* ---------------------------------------------------------
+     视图：内容页
+     --------------------------------------------------------- */
+  function viewItem(r) {
+    return loadLibrary().then(function () {
+      var it = itemById(r.id);
+      if (!it) {
+        $('#app').innerHTML = '<div class="empty"><h2>内容不存在</h2></div>';
+        return;
+      }
+      document.title = (it.title || '') + ' · ' + (LIB.site.title || '');
+
+      var back = '<button class="back" id="back">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg>返回</button>';
+
+      if (it.type === 'page') {
+        renderPage(it, back);
+      } else if (it.type === 'image') {
+        $('#app').innerHTML = back + '<article class="article">' +
+          '<header><h1>' + esc(it.title || '') + '</h1>' +
+          '<div class="meta">' + metaHTML(it) + '</div></header>' +
+          '<figure class="figure"><img src="' + esc(it.path) + '" alt="' + esc(it.title || '') + '"></figure>' +
+          footHTML(it) + '</article>';
+        afterItem(it);
+      } else {
+        readFile(it.path).then(function (raw) {
+          var n = splitFront(raw);
+          var body = n.body;
+          var h1 = /^\s*#\s+(.+?)\s*(?:\r?\n|$)/.exec(body);
+          var t = it.title || n.meta.title || '';
+          if (h1 && h1[1].trim() === String(t).trim()) body = body.slice(h1[0].length);
+          $('#app').innerHTML = back + '<article class="article">' +
+            '<header><h1>' + esc(t) + '</h1>' +
+            '<div class="meta">' + metaHTML(it) + '</div></header>' +
+            '<div class="prose">' + markdown(body) + '</div>' +
+            footHTML(it) + '</article>';
+          hydrateImages($('#app'));
+          patchBlobs($('#app'));
+          afterItem(it);
+        });
+      }
+
+      $('#back').addEventListener('click', function () {
+        if (history.length > 1) history.back(); else go('#/');
+      });
+    });
+  }
+
+  function metaHTML(it) {
+    var a = [];
+    if (it.date) a.push('<span>' + esc(fmtDate(it.date)) + '</span>');
+    (it.tags || []).forEach(function (t) { a.push('<span class="dot"></span><span>' + esc(t) + '</span>'); });
+    return a.join('');
+  }
+
+  function footHTML(it) {
+    var a = ['<button class="btn sm" id="a-link">复制链接</button>'];
+    if (it.type === 'page') {
+      a.push('<a class="btn sm" href="' + esc(it.path) + '" target="_blank" rel="noopener">新窗口打开</a>');
+    }
+    if (isAuthor()) {
+      a.push('<a class="btn sm" href="#/edit/' + encodeURIComponent(it.id) + '">编辑</a>');
+      a.push('<button class="btn sm danger" id="a-del">删除</button>');
+    }
+    return '<div class="article-foot">' + a.join('') + '</div>';
+  }
+
+  function renderPage(it, back) {
+    var url = assetURL(it.path);
+    $('#app').innerHTML = back + '<div class="article" style="max-width:100%">' +
+      '<header><h1>' + esc(it.title || '') + '</h1>' +
+      '<div class="meta">' + metaHTML(it) + '</div></header>' +
+      '<div class="frame-wrap">' +
+      '<div class="frame-bar"><span class="url">' + esc(it.path) + '</span><span class="grow"></span>' +
+      '<a class="btn sm" href="' + esc(url) + '" target="_blank" rel="noopener">新窗口</a></div>' +
+      '<iframe src="' + esc(it.path) + '" loading="lazy"></iframe>' +
+      '</div>' + footHTML(it) + '</div>';
+    afterItem(it);
+  }
+
+  function afterItem(it) {
+    var link = $('#a-link');
+    if (link) link.addEventListener('click', function () { copy(itemURL(it), '链接已复制'); });
+    var del = $('#a-del');
+    if (del) {
+      del.addEventListener('click', function () {
+        if (!confirm('删除「' + (it.title || '') + '」？')) return;
+        del.disabled = true;
+        queue(function () {
+          var idx = LIB.items.map(function (x) { return x.id; }).indexOf(it.id);
+          if (idx >= 0) LIB.items.splice(idx, 1);
+          var files = [{ path: LIB_PATH, content: libJSON() }];
+          if (it.path) files.push({ path: it.path, remove: true });
+          return commit(files, '删除 ' + (it.title || it.id));
+        }).then(function () {
+          loaded = false;
+          toast('已删除');
+          go('#/');
+        }).catch(function (e) {
+          del.disabled = false;
+          toast(friendly(e), 'err');
+        });
+      });
+    }
+  }
+
+  /* ---------------------------------------------------------
+     标记解析
+     --------------------------------------------------------- */
+  function splitFront(text) {
+    var meta = {}, body = String(text || '');
+    var m = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(body);
     if (m) {
-      body = text.slice(m[0].length);
+      body = body.slice(m[0].length);
       m[1].split(/\r?\n/).forEach(function (line) {
         var i = line.indexOf(':');
         if (i < 0) return;
@@ -71,1043 +611,463 @@
         var v = line.slice(i + 1).trim().replace(/^["']|["']$/g, '');
         if (!k) return;
         if (k === 'tags' || k === 'tag') {
-          meta.tags = v.replace(/^\[|\]$/g, '').split(/[,，]/)
-            .map(function (t) { return t.trim(); }).filter(Boolean);
-        } else {
-          meta[k] = v;
-        }
+          meta.tags = v.replace(/^\[|\]$/g, '').split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean);
+        } else meta[k] = v;
       });
     }
     return { meta: meta, body: body };
   }
 
-  function buildNote(n) {
-    var lines = ['---'];
-    lines.push('title: ' + oneLine(n.title));
-    if (n.tags && n.tags.length) lines.push('tags: ' + n.tags.join(', '));
-    lines.push('date: ' + (n.date || todayISO()));
-    if (n.summary) lines.push('summary: ' + oneLine(n.summary));
-    lines.push('---', '', n.body || '');
-    return lines.join('\n');
-  }
-  function oneLine(s) {
-    return String(s || '').replace(/[\r\n]+/g, ' ').trim();
+  function buildNote(it, body) {
+    var L = ['---', 'title: ' + String(it.title || '').replace(/[\r\n]+/g, ' ')];
+    if (it.tags && it.tags.length) L.push('tags: ' + it.tags.join(', '));
+    L.push('date: ' + (it.date || today()));
+    L.push('---', '', body || '');
+    return L.join('\n');
   }
 
-  function makeSummary(md, len) {
-    var t = String(md || '')
-      .replace(/<!--[\s\S]*?-->/g, ' ')
-      .replace(/```[\s\S]*?```/g, ' ')
-      .replace(/`[^`]*`/g, ' ')
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replace(/^\s{0,3}#{1,6}\s+/gm, '')
-      .replace(/^\s{0,3}>\s?/gm, '')
-      .replace(/[*_~]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    len = len || 110;
-    return t.length > len ? t.slice(0, len) + '…' : t;
-  }
-
-  function renderMD(md) {
-    var html = window.marked.parse(String(md || ''), { gfm: true, breaks: false });
-    return window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
-  }
-
-  function slugify(s) {
-    var base = String(s || '').toLowerCase().trim()
-      .replace(/[^\w\u4e00-\u9fa5\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-    return base || ('note-' + Date.now().toString(36));
-  }
-
-  /* ---------------- GitHub 接口 ---------------- */
-  var API = 'https://api.github.com';
-
-  function ghFetch(path, opts) {
-    opts = opts || {};
-    var headers = { 'Accept': opts.accept || 'application/vnd.github+json' };
-    var token = getToken();
-    if (token && !opts.anonymous) headers['Authorization'] = 'Bearer ' + token;
-    if (opts.body) headers['Content-Type'] = 'application/json';
-    return fetch(API + path, {
-      method: opts.method || 'GET',
-      headers: headers,
-      body: opts.body ? JSON.stringify(opts.body) : undefined,
-      cache: opts.anonymous ? 'default' : 'no-store'
-    }).then(function (res) {
-      if (!res.ok) {
-        return res.text().then(function (t) {
-          var msg = 'GitHub 接口错误 ' + res.status;
-          try { msg = JSON.parse(t).message || msg; } catch (e) { }
-          if (res.status === 401) msg = '令牌无效或已过期（401）';
-          if (res.status === 403) msg = '权限不足或被限流（403）：' + msg;
-          if (res.status === 404) msg = '找不到资源（404）：请检查用户名 / 仓库名 / 分支';
-          var err = new Error(msg);
-          err.status = res.status;
-          throw err;
-        });
-      }
-      if (opts.raw) return res.text();
-      return res.json();
-    });
-  }
-
-  function repoPath(p) {
-    return '/repos/' + encodeURIComponent(CFG.owner) + '/' + encodeURIComponent(CFG.repo) + p;
-  }
-
-  /* 通过 API 读取仓库里的文本文件；不存在返回 null */
-  function apiReadFile(path) {
-    return ghFetch(repoPath('/contents/' + path) + '?ref=' + encodeURIComponent(CFG.branch), {
-      accept: 'application/vnd.github.raw+json', raw: true, anonymous: !getToken()
-    }).then(function (txt) { return txt; })
-      .catch(function (e) { if (e.status === 404) return null; throw e; });
-  }
-
-  /* 通过 Pages 静态路径读取（同源） */
-  function staticReadFile(path) {
-    return fetch(path + '?v=' + Date.now(), { cache: 'no-store' })
-      .then(function (r) { return r.ok ? r.text() : null; })
-      .catch(function () { return null; });
-  }
-
-  /* 读取文件：优先 API（新鲜），失败则回退静态文件（稳） */
-  function readFile(path, preferFresh) {
-    if (!configured()) return staticReadFile(path);
-    var primary = preferFresh ? apiReadFile(path) : Promise.resolve(null);
-    return primary.then(function (txt) {
-      if (txt != null) return txt;
-      return staticReadFile(path).then(function (s) {
-        if (s != null) return s;
-        return apiReadFile(path); // 静态没构建出来时再兜一次
-      });
-    }).catch(function () { return staticReadFile(path); });
-  }
-
-  /* ---------------- 目录读取 ---------------- */
-  function normalizeManifest(raw) {
-    var obj = raw;
-    if (typeof raw === 'string') { try { obj = JSON.parse(raw); } catch (e) { return null; } }
-    if (!obj) return null;
-    var list = Array.isArray(obj) ? obj : (obj.notes || []);
-    if (!Array.isArray(list)) return null;
-    return list;
-  }
-
-  function loadIndex() {
-    return readFile('data/index.json', true).then(function (raw) {
-      var list = normalizeManifest(raw);
-      if (list) return list;
-      return listViaTree();
-    });
-  }
-
-  /* 兜底：匿名读 git tree，列出 content/*.md（只有文件名，没有标题） */
-  function listViaTree() {
-    if (!configured()) return [];
-    return ghFetch(repoPath('/git/trees/' + encodeURIComponent(CFG.branch) + '?recursive=1'), {
-      anonymous: !getToken()
-    }).then(function (data) {
-      return (data.tree || [])
-        .filter(function (n) { return n.type === 'blob' && /^content\/.+\.md$/i.test(n.path); })
-        .map(function (n) {
-          var slug = n.path.replace(/^content\//, '').replace(/\.md$/i, '');
-          return { slug: slug, title: slug, tags: [], date: '', summary: '' };
-        });
-    }).catch(function () { return []; });
-  }
-
-  /* ---------------- 写入：原子提交 ---------------- */
-  function commitFiles(files, message, attempt) {
-    attempt = attempt || 1;
-    var head;
-    return ghFetch(repoPath('/git/ref/heads/' + encodeURIComponent(CFG.branch)))
-      .then(function (ref) {
-        head = ref.object.sha;
-        return ghFetch(repoPath('/git/commits/' + head));
-      })
-      .then(function (commit) {
-        var baseTree = commit.tree.sha;
-        var chain = Promise.resolve([]);
-        files.forEach(function (f) {
-          chain = chain.then(function (acc) {
-            if (f.remove) {
-              acc.push({ path: f.path, mode: '100644', type: 'blob', sha: null });
-              return acc;
-            }
-            return ghFetch(repoPath('/git/blobs'), {
-              method: 'POST', body: { content: f.content, encoding: f.encoding || 'utf-8' }
-            }).then(function (blob) {
-              acc.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
-              return acc;
-            });
-          });
-        });
-        return chain.then(function (entries) {
-          return ghFetch(repoPath('/git/trees'), {
-            method: 'POST', body: { base_tree: baseTree, tree: entries }
-          });
-        });
-      })
-      .then(function (tree) {
-        return ghFetch(repoPath('/git/commits'), {
-          method: 'POST', body: { message: message, tree: tree.sha, parents: [head] }
-        });
-      })
-      .then(function (commit) {
-        return ghFetch(repoPath('/git/refs/heads/' + encodeURIComponent(CFG.branch)), {
-          method: 'PATCH', body: { sha: commit.sha, force: false }
-        });
-      })
-      .catch(function (err) {
-        /* 422 / 409：读取基点和推送提交之间分支被别的提交推进了
-           （例如 Actions 的自动提交、或多标签页同时操作）。
-           这里重新读取最新基点，把整个提交重做一遍。 */
-        if ((err.status === 422 || err.status === 409) && attempt < 4) {
-          return new Promise(function (r) { setTimeout(r, 350 * attempt); })
-            .then(function () { return commitFiles(files, message, attempt + 1); });
-        }
-        throw err;
-      });
-  }
-
-  /* 更新 data/index.json：读现有 → upsert → 返回新内容 */
-  function indexWithEntry(entry) {
-    return apiReadFile('data/index.json').catch(function () { return null; })
-      .then(function (raw) {
-        var list = normalizeManifest(raw) || [];
-        list = list.filter(function (n) { return n.slug !== entry.slug; });
-        if (!entry.remove) list.push(entry);
-        list.sort(function (a, b) {
-          return String(b.date || '').localeCompare(String(a.date || ''));
-        });
-        return JSON.stringify({ generated: new Date().toISOString(), notes: list }, null, 2) + '\n';
-      });
-  }
-
-  function saveNote(note, isNew) {
-    return enqueueCommit(function () {
-      var rel = 'content/' + note.slug + '.md';
-      var entry = {
-        slug: note.slug, title: note.title, tags: note.tags || [],
-        date: note.date || todayISO(), summary: note.summary || ''
-      };
-      return indexWithEntry(entry).then(function (indexContent) {
-        return commitFiles([
-          { path: rel, content: buildNote(note) },
-          { path: 'data/index.json', content: indexContent }
-        ], (isNew ? '新增笔记：' : '更新笔记：') + note.title + '\n\n通过知识库在线编辑器提交');
-      });
-    });
-  }
-
-  function deleteNote(note) {
-    return enqueueCommit(function () {
-      return indexWithEntry({ slug: note.slug, remove: true }).then(function (indexContent) {
-        return commitFiles([
-          { path: 'content/' + note.slug + '.md', remove: true },
-          { path: 'data/index.json', content: indexContent }
-        ], '删除笔记：' + (note.title || note.slug) + '\n\n通过知识库在线编辑器提交');
-      });
-    });
-  }
-
-  /* ---------------- 图片上传 ---------------- */
-  var localImages = {};                 // 文件名 -> dataURL，用于编辑器内即时预览
-  var commitChain = Promise.resolve();  // 所有写操作串行执行，避免并发提交互相踩踏
-  var MAX_UPLOAD = 25 * 1024 * 1024;    // 单张原图上限 25MB（手机直出照片也够）
-  var MAX_WIDTH = 1600;                 // 超过则等比缩小，避免仓库膨胀
-  var WEB_SAFE = { 'image/png': 1, 'image/jpeg': 1, 'image/webp': 1 };
-
-  /* 把写操作排进队列：前一个结束后才开始下一个 */
-  function enqueueCommit(task) {
-    var run = commitChain.then(task, task);
-    commitChain = run.catch(function () { });
-    return run;
-  }
-
-  function fileToDataURL(file) {
-    return new Promise(function (resolve, reject) {
-      var fr = new FileReader();
-      fr.onload = function () { resolve(fr.result); };
-      fr.onerror = function () { reject(new Error('读取文件失败')); };
-      fr.readAsDataURL(file);
-    });
-  }
-
-  function loadImageEl(src) {
-    return new Promise(function (resolve, reject) {
-      var img = new Image();
-      img.onload = function () { resolve(img); };
-      img.onerror = function () { reject(new Error('图片解码失败')); };
-      img.src = src;
-    });
-  }
-
-  /* 需要时等比缩小；非 Web 友好格式（如 iPhone 的 HEIC）统一转成 JPEG */
-  function shrinkImage(file) {
-    return fileToDataURL(file).then(function (dataURL) {
-      // GIF 保留动画，SVG 保留矢量，都原样上传
-      if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
-        return { dataURL: dataURL, mime: file.type };
-      }
-      return loadImageEl(dataURL).then(function (img) {
-        var needsResize = img.width > MAX_WIDTH;
-        var needsConvert = !WEB_SAFE[file.type];
-        if (!needsResize && !needsConvert) return { dataURL: dataURL, mime: file.type };
-
-        var w = needsResize ? MAX_WIDTH : img.width;
-        var h = Math.max(1, Math.round(img.height * w / img.width));
-        var cv = document.createElement('canvas');
-        cv.width = w;
-        cv.height = h;
-        cv.getContext('2d').drawImage(img, 0, 0, w, h);
-        var mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-        return { dataURL: cv.toDataURL(mime, 0.88), mime: mime };
-      }).catch(function () {
-        return { dataURL: dataURL, mime: file.type };  // 解码失败就原样上传
-      });
-    });
-  }
-
-  function makeImageName(file, mime) {
-    var ext = {
-      'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif',
-      'image/webp': 'webp', 'image/svg+xml': 'svg'
-    }[mime] || 'png';
-    var d = new Date();
-    var stamp = '' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
-      pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
-    var base = String(file.name || '').replace(/\.[^.]+$/, '')
-      .replace(/[^\w\u4e00-\u9fa5-]/g, '-').replace(/-+/g, '-')
-      .replace(/^-|-$/g, '').slice(0, 32);
-    return (base ? base + '-' : 'img-') + stamp + '.' + ext;
-  }
-
-  /* 上传一张图片到 content/images/，成功返回 Markdown 片段 */
-  function uploadImage(file) {
-    if (!getToken()) return Promise.reject(new Error('请先在设置里配置访问令牌'));
-    if (file.size > MAX_UPLOAD) {
-      return Promise.reject(new Error('图片超过 ' + Math.round(MAX_UPLOAD / 1048576) + 'MB，请先压缩'));
-    }
-    return shrinkImage(file).then(function (r) {
-      var name = makeImageName(file, r.mime);
-      var base64 = String(r.dataURL).split(',')[1];
-      return enqueueCommit(function () {
-        return commitFiles(
-          [{ path: 'content/images/' + name, content: base64, encoding: 'base64' }],
-          '上传图片：' + name + '\n\n通过知识库在线编辑器提交'
-        );
-      }).then(function () {
-        localImages[name] = r.dataURL;
-        return '![图片](content/images/' + name + ')';
-      });
-    });
-  }
-
-  /* 把预览/正文里指向 content/images/ 的图换成已知的本地数据，即时可见 */
-  function patchLocalImages(root) {
-    var imgs = root.querySelectorAll('img');
-    for (var i = 0; i < imgs.length; i++) {
-      var src = imgs[i].getAttribute('src') || '';
-      var m = /content\/images\/([^\/?#]+)/.exec(src);
-      if (m && localImages[m[1]]) imgs[i].src = localImages[m[1]];
-    }
-  }
-
-  /* 已配令牌时，用 API 取原图渲染，刚上传的图片不必等 Pages 构建 */
-  function hydrateNoteImages(root) {
-    if (!getToken() || !CFG.owner || !CFG.repo) return;
-    var imgs = root.querySelectorAll('img');
-    for (var i = 0; i < imgs.length; i++) {
-      (function (img) {
-        var src = img.getAttribute('src') || '';
-        if (/^(https?:|data:)/i.test(src)) return;
-        var m = /content\/images\/([^\/?#]+)/.exec(src);
-        if (!m) return;
-        var name = m[1];
-        if (localImages[name]) { img.src = localImages[name]; return; }
-        fetch(API + repoPath('/contents/content/images/' + encodeURIComponent(name)) +
-          '?ref=' + encodeURIComponent(CFG.branch), {
-          headers: {
-            Authorization: 'Bearer ' + getToken(),
-            Accept: 'application/vnd.github.raw+json'
-          },
-          cache: 'no-store'
-        }).then(function (r) { return r.ok ? r.blob() : null; })
-          .then(function (b) {
-            if (!b || b.size > 6 * 1024 * 1024) return;
-            var fr = new FileReader();
-            fr.onload = function () { img.src = fr.result; localImages[name] = fr.result; };
-            fr.readAsDataURL(b);
-          }).catch(function () { });
-      })(imgs[i]);
-    }
-  }
-
-  /* 把 GitHub 的英文报错翻译成看得懂的话 */
-  function friendlyError(e) {
-    var m = String((e && e.message) || e || '');
-    if (/not a fast forward|422/i.test(m)) return '仓库刚好被其他操作更新了，请重试一次';
-    if (/\b401\b|bad credentials/i.test(m)) return '令牌无效或已过期，请到设置里重新填写';
-    if (/\b403\b/.test(m)) return '令牌权限不足，需要 repo 和 workflow 权限';
-    if (/\b404\b/.test(m)) return '找不到仓库或分支，请检查设置里的用户名和仓库名';
-    if (/rate limit/i.test(m)) return '操作太频繁，请等一会儿再试';
-    if (/Failed to fetch|NetworkError|network/i.test(m)) return '网络连接中断，请重试';
-    return m;
-  }
-
-  function insertAtCursor(ta, text) {
-    var start = ta.selectionStart, end = ta.selectionEnd;
-    if (start == null) { ta.value += text; return; }
-    ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
-    var pos = start + text.length;
-    try { ta.setSelectionRange(pos, pos); } catch (e) { }
-  }
-
-  /* ---------------- 路由 ---------------- */
-  function parseHash() {
-    var h = location.hash.replace(/^#/, '') || '/';
-    var seg = h.split('/').filter(Boolean).map(function (s) {
-      try { return decodeURIComponent(s); } catch (e) { return s; }
-    });
-    if (!seg.length) return { view: 'list' };
-    if (seg[0] === 'n' && seg[1]) return { view: 'note', slug: seg.slice(1).join('/') };
-    if (seg[0] === 'tag' && seg[1]) return { view: 'list', tag: seg.slice(1).join('/') };
-    if (seg[0] === 'new') return { view: 'edit', slug: null };
-    if (seg[0] === 'edit' && seg[1]) return { view: 'edit', slug: seg.slice(1).join('/') };
-    if (seg[0] === 'pages') return { view: 'pages' };
-    if (seg[0] === 'settings') return { view: 'settings' };
-    return { view: 'list' };
-  }
-
-  function go(hash) {
-    if (location.hash === hash) render(); else location.hash = hash;
-  }
-
-  function noteURL(slug) {
-    return location.origin + location.pathname + '#/n/' + encodeURIComponent(slug);
-  }
-
-  function copyText(text, okMsg) {
-    function fallback() {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); toast(okMsg || '已复制', 'ok'); }
-      catch (e) { toast('复制失败，请手动复制', 'err'); }
-      document.body.removeChild(ta);
-    }
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(function () { toast(okMsg || '已复制', 'ok'); }, fallback);
-    } else fallback();
-  }
-
-  /* ---------------- 视图：列表 ---------------- */
-  var allNotes = [];
-  var listState = { q: '', tag: null };
-
-  function viewList(route) {
-    listState.tag = route.tag || null;
-    return loadIndex().then(function (notes) {
-      allNotes = notes || [];
-      renderListBody();
-    });
-  }
-
-  function renderListBody() {
-    var q = listState.q.toLowerCase();
-    var notes = allNotes.filter(function (n) {
-      if (listState.tag && (n.tags || []).indexOf(listState.tag) < 0) return false;
-      if (!q) return true;
-      return ((n.title || '') + ' ' + (n.summary || '') + ' ' + (n.tags || []).join(' '))
-        .toLowerCase().indexOf(q) >= 0;
-    });
-
-    var tagCount = {};
-    allNotes.forEach(function (n) {
-      (n.tags || []).forEach(function (t) { tagCount[t] = (tagCount[t] || 0) + 1; });
-    });
-    var tags = Object.keys(tagCount).sort(function (a, b) { return tagCount[b] - tagCount[a]; });
-
-    var html = '<div class="toolbar">' +
-      '<input class="search" id="q" type="search" placeholder="搜索标题、摘要、标签…" value="' + esc(listState.q) + '">' +
-      '<span class="count">' + notes.length + ' / ' + allNotes.length + ' 篇</span>' +
-      (getToken() && configured() ? '<a class="btn primary" href="#/new">✏️ 写笔记</a>' : '') +
-      '</div>';
-
-    if (tags.length) {
-      html += '<div class="tags">' +
-        (listState.tag ? '<a class="tag" href="#/">← 全部</a>' : '') +
-        tags.map(function (t) {
-          return '<a class="tag' + (listState.tag === t ? ' active' : '') + '" href="#/tag/' +
-            encodeURIComponent(t) + '">' + esc(t) + ' ' + tagCount[t] + '</a>';
-        }).join('') + '</div>';
-    }
-
-    if (!allNotes.length) {
-      html += '<div class="empty-state"><h2>还没有内容</h2>' +
-        '<p>这个知识库目前是空的，写下第一篇就会出现在这里。</p>' +
-        '<a class="btn primary" href="#/new">✏️ 写第一篇笔记</a></div>';
-    } else if (!notes.length) {
-      html += '<div class="empty-state"><p>没有匹配「' + esc(listState.q || listState.tag) + '」的内容。</p></div>';
-    } else {
-      html += '<div class="grid">' + notes.map(function (n) {
-        return '<article class="card">' +
-          '<h3><a href="#/n/' + encodeURIComponent(n.slug) + '">' + esc(n.title || n.slug) + '</a></h3>' +
-          (n.summary ? '<p class="summary">' + esc(n.summary) + '</p>' : '') +
-          '<div class="meta">' +
-          (n.date ? '<span>' + esc(fmtDate(n.date)) + '</span>' : '') +
-          (n.tags || []).slice(0, 3).map(function (t) {
-            return '<a class="tag plain" href="#/tag/' + encodeURIComponent(t) + '">' + esc(t) + '</a>';
-          }).join('') +
-          '</div></article>';
-      }).join('') + '</div>';
-    }
-
-    $('#app').innerHTML = html;
-    var input = $('#q');
-    if (input) {
-      input.addEventListener('input', function () {
-        listState.q = input.value;
-        var pos = input.selectionStart;
-        renderListBody();
-        var ni = $('#q');
-        if (ni) { ni.focus(); try { ni.setSelectionRange(pos, pos); } catch (e) { } }
-      });
-    }
-  }
-
-  /* ---------------- 视图：阅读 ---------------- */
-  function viewNote(route) {
-    var slug = route.slug;
-    return readFile('content/' + slug + '.md', true).then(function (raw) {
-      if (raw == null) {
-        $('#app').innerHTML = '<div class="panel"><h2>找不到这篇笔记</h2>' +
-          '<p class="hint">它可能已被删除，或仓库还没构建好。</p>' +
-          '<a class="btn" href="#/">← 返回列表</a></div>';
-        return;
-      }
-      var n = parseNote(raw);
-      var title = n.meta.title || slug;
-      var tags = n.meta.tags || [];
-      // 正文开头若重复写了与标题相同的一级标题，去掉以免页面出现两个大标题
-      var rawBody = n.body || '';
-      var h1 = /^\s*#\s+(.+?)\s*(?:\r?\n|$)/.exec(rawBody);
-      if (h1 && h1[1].trim() === title.trim()) rawBody = rawBody.slice(h1[0].length);
-      var body = renderMD(rawBody);
-      var isAuthor = !!getToken();
-
-      var html = '<article class="article">' +
-        '<div class="article-head">' +
-        '<h1>' + esc(title) + '</h1>' +
-        '<div class="meta">' +
-        (n.meta.date ? '<span>📅 ' + esc(fmtDate(n.meta.date)) + '</span>' : '') +
-        tags.map(function (t) {
-          return '<a class="tag plain" href="#/tag/' + encodeURIComponent(t) + '">' + esc(t) + '</a>';
-        }).join('') +
-        '</div>' +
-        '<div class="article-actions">' +
-        '<button class="btn sm" id="copy">🔗 复制链接</button>' +
-        (configured() ? '<a class="btn sm" target="_blank" rel="noopener" href="https://github.com/' +
-          encodeURIComponent(CFG.owner) + '/' + encodeURIComponent(CFG.repo) + '/edit/' +
-          encodeURIComponent(CFG.branch) + '/content/' + encodeURIComponent(slug) + '.md">在 GitHub 编辑</a>' : '') +
-        (isAuthor ? '<a class="btn sm" href="#/edit/' + encodeURIComponent(slug) + '">✏️ 编辑</a>' : '') +
-        (isAuthor ? '<button class="btn sm danger" id="del">删除</button>' : '') +
-        '</div></div>' +
-        '<div class="prose">' + body + '</div>' +
-        '</article>';
-
-      $('#app').innerHTML = html;
-      hydrateNoteImages($('#app'));
-
-      $('#copy').addEventListener('click', function () {
-        copyText(noteURL(slug), '链接已复制，可以直接分享');
-      });
-
-      var delBtn = $('#del');
-      if (delBtn) {
-        delBtn.addEventListener('click', function () {
-          if (!confirm('确定删除《' + title + '》？此操作会提交到 GitHub，可以从历史记录中恢复。')) return;
-          delBtn.disabled = true;
-          delBtn.textContent = '删除中…';
-          deleteNote({ slug: slug, title: title }).then(function () {
-            allNotes = allNotes.filter(function (x) { return x.slug !== slug; });
-            toast('已删除', 'ok');
-            go('#/');
-          }).catch(function (e) {
-            delBtn.disabled = false;
-            delBtn.textContent = '删除';
-            toast('删除失败：' + e.message, 'err');
-          });
-        });
-      }
-    });
-  }
-
-  /* ---------------- 视图：编辑 ---------------- */
-  function viewEdit(route) {
-    var isNew = !route.slug;
-    var load = isNew
-      ? Promise.resolve({ title: '', tags: [], date: todayISO(), summary: '', body: '' })
-      : readFile('content/' + route.slug + '.md', true).then(function (raw) {
-        if (raw == null) { toast('找不到这篇笔记', 'err'); go('#/'); return null; }
-        var n = parseNote(raw);
-        return {
-          title: n.meta.title || route.slug, tags: n.meta.tags || [],
-          date: n.meta.date || todayISO(), summary: n.meta.summary || '', body: n.body || ''
-        };
-      });
-
-    return load.then(function (note) {
-      if (!note) return;
-      var slug = isNew ? '' : route.slug;
-
-      $('#app').innerHTML = '<div class="panel">' +
-        '<h2>' + (isNew ? '写新笔记' : '编辑笔记') + '</h2>' +
-        '<p class="hint">保存后会直接提交到 GitHub 仓库（' + esc(CFG.owner + '/' + CFG.repo) + '）。</p>' +
-        (getToken() ? '' : '<div class="notice warn">还没有配置访问令牌，无法保存。请先到 <a href="#/settings">设置</a> 里填写。</div>') +
-        '<div class="row">' +
-        '<div class="field" style="flex:2 1 340px"><label for="f-title">标题</label>' +
-        '<input id="f-title" type="text" placeholder="例如：如何高效做读书笔记" value="' + esc(note.title) + '"></div>' +
-        '<div class="field" style="flex:1 1 200px"><label for="f-slug">链接标识</label>' +
-        '<input id="f-slug" type="text" placeholder="自动生成" value="' + esc(slug) + '"' + (isNew ? '' : ' readonly') + '>' +
-        '<div class="note">决定网址 <code>#/n/标识</code>，建议用英文或数字，中文也可用。</div></div>' +
-        '</div>' +
-        '<div class="row">' +
-        '<div class="field" style="flex:2 1 300px"><label for="f-tags">标签</label>' +
-        '<input id="f-tags" type="text" placeholder="用逗号分隔，例如：读书, 方法" value="' + esc((note.tags || []).join(', ')) + '">' +
-        '<div class="note">标签会显示在列表页顶部，方便分类浏览。</div></div>' +
-        '<div class="field" style="flex:1 1 180px"><label for="f-date">日期</label>' +
-        '<input id="f-date" type="date" value="' + esc(note.date) + '"></div>' +
-        '</div>' +
-        '<div class="field"><label for="f-summary">摘要（可选）</label>' +
-        '<input id="f-summary" type="text" placeholder="留空则自动截取正文开头" value="' + esc(note.summary) + '"></div>' +
-        '<div class="field"><label for="f-body">正文（Markdown）</label></div>' +
-        '<div class="editor-split">' +
-        '<textarea id="f-body" class="body" spellcheck="false" placeholder="在这里写 Markdown…">' + esc(note.body) + '</textarea>' +
-        '<div class="preview-box" id="preview"></div>' +
-        '</div>' +
-        '<div class="note" style="margin:-10px 0 14px">' +
-        '💡 图片可以直接 <strong>Ctrl+V 粘贴</strong> 或 <strong>拖拽</strong> 到左边的输入框，' +
-        '也可以点下面的「插入图片」按钮。' +
-        '</div>' +
-        '<div class="actions">' +
-        '<button class="btn primary" id="save">💾 保存并发布</button>' +
-        '<button class="btn" id="pick-img" type="button">📷 插入图片</button>' +
-        '<a class="btn" href="' + (isNew ? '#/' : '#/n/' + encodeURIComponent(route.slug)) + '">取消</a>' +
-        '<span class="spacer"></span>' +
-        '<span class="count" id="stat"></span>' +
-        '</div>' +
-        '<input type="file" id="img-input" accept="image/*" multiple hidden>' +
-        '</div>';
-
-      // 移动端把 textarea 的 min-height 调小一点
-      var bodyEl = $('#f-body');
-      if (window.innerWidth < 900) bodyEl.style.minHeight = '260px';
-
-      var preview = $('#preview');
-      var stat = $('#stat');
-      function refresh() {
-        var md = bodyEl.value;
-        preview.innerHTML = md.trim()
-          ? renderMD(md)
-          : '<p class="empty">左边输入内容，这里会实时预览。</p>';
-        patchLocalImages(preview);
-        stat.textContent = md.length + ' 字符';
-      }
-      bodyEl.addEventListener('input', refresh);
-      refresh();
-
-      var titleEl = $('#f-title'), slugEl = $('#f-slug');
-      if (isNew) {
-        var slugTouched = false;
-        slugEl.addEventListener('input', function () { slugTouched = true; });
-        titleEl.addEventListener('input', function () {
-          if (!slugTouched) slugEl.value = slugify(titleEl.value);
-        });
-      }
-
-      /* ---- 图片：按钮 / 粘贴 / 拖拽 ---- */
-      function handleImageFiles(files) {
-        var imgs = Array.prototype.filter.call(files || [], function (f) {
-          return /^image\//.test(f.type);
-        });
-        if (!imgs.length) return;
-        if (!getToken()) { toast('请先在设置里配置访问令牌', 'err'); return; }
-
-        imgs.forEach(function (f) {
-          var ph = '![上传中](uploading-' + Math.random().toString(36).slice(2, 8) + ')';
-          var at = bodyEl.selectionStart == null ? bodyEl.value.length : bodyEl.selectionStart;
-          var pre = (at > 0 && !/\n$/.test(bodyEl.value.slice(0, at))) ? '\n' : '';
-          insertAtCursor(bodyEl, pre + ph + '\n');
-          refresh();
-          toast('正在上传 ' + (f.name || '粘贴的图片') + ' …');
-
-          uploadImage(f).then(function (md) {
-            bodyEl.value = bodyEl.value.split(ph).join(md);
-            refresh();
-            toast('图片已插入', 'ok');
-          }).catch(function (e) {
-            var msg = friendlyError(e);
-            bodyEl.value = bodyEl.value.split(ph)
-              .join('<!-- 图片上传失败：' + msg.replace(/-{2,}/g, '-') + ' -->');
-            refresh();
-            toast('图片上传失败：' + msg, 'err');
-          });
-        });
-      }
-
-      $('#pick-img').addEventListener('click', function () { $('#img-input').click(); });
-      $('#img-input').addEventListener('change', function (e) {
-        handleImageFiles(e.target.files);
-        e.target.value = '';
-      });
-      bodyEl.addEventListener('paste', function (e) {
-        var items = (e.clipboardData && e.clipboardData.items) || [];
-        var files = [];
-        for (var i = 0; i < items.length; i++) {
-          if (items[i].kind === 'file') {
-            var f = items[i].getAsFile();
-            if (f) files.push(f);
-          }
-        }
-        if (files.length) { e.preventDefault(); handleImageFiles(files); }
-      });
-      bodyEl.addEventListener('dragover', function (e) {
-        e.preventDefault();
-        bodyEl.classList.add('dragging');
-      });
-      bodyEl.addEventListener('dragleave', function () { bodyEl.classList.remove('dragging'); });
-      bodyEl.addEventListener('drop', function (e) {
-        e.preventDefault();
-        bodyEl.classList.remove('dragging');
-        if (e.dataTransfer && e.dataTransfer.files) handleImageFiles(e.dataTransfer.files);
-      });
-
-      $('#save').addEventListener('click', function () {
-        if (!getToken()) {
-          toast('请先在设置里配置访问令牌', 'err');
-          go('#/settings');
-          return;
-        }
-        var title = titleEl.value.trim();
-        if (!title) { toast('请填写标题', 'err'); titleEl.focus(); return; }
-        var finalSlug = (slugEl.value.trim() || slugify(title));
-        finalSlug = finalSlug.replace(/[\/\\]/g, '-').replace(/\.md$/i, '');
-        var body = bodyEl.value;
-        var noteObj = {
-          title: title,
-          slug: finalSlug,
-          tags: $('#f-tags').value.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean),
-          date: $('#f-date').value || todayISO(),
-          summary: $('#f-summary').value.trim() || makeSummary(body),
-          body: body
-        };
-        var btn = $('#save');
-        btn.disabled = true;
-        btn.textContent = '提交中…';
-        saveNote(noteObj, isNew).then(function () {
-          toast('已提交，正在打开…', 'ok');
-          setTimeout(function () { go('#/n/' + encodeURIComponent(finalSlug)); }, 400);
-        }).catch(function (e) {
-          btn.disabled = false;
-          btn.textContent = '💾 保存并发布';
-          toast('保存失败：' + friendlyError(e), 'err');
-        });
-      });
-    });
-  }
-
-  /* ---------------- 视图：HTML 页面管理 ---------------- */
-  function siteBase() {
-    // 站点根目录（去掉 kb.html / index.html 这类文件名）
-    return location.origin + location.pathname.replace(/[^\/]*$/, '');
-  }
-  function pageURL(name) { return siteBase() + name; }
-
-  function listHtmlPages() {
-    return ghFetch(repoPath('/contents') + '?ref=' + encodeURIComponent(CFG.branch) + '&t=' + Date.now())
-      .then(function (items) {
-        return (Array.isArray(items) ? items : [])
-          .filter(function (f) { return f.type === 'file' && /\.html?$/i.test(f.name); })
-          .map(function (f) { return { name: f.name, size: f.size }; });
-      });
-  }
-
-  function safeHtmlName(name) {
-    var n = String(name || '').replace(/[^\w\u4e00-\u9fa5.\-]/g, '_');
-    if (!/\.html?$/i.test(n)) n += '.html';
-    return n;
-  }
-
-  function uploadHtmlFile(file) {
-    return fileToDataURL(file).then(function (dataURL) {
-      var name = safeHtmlName(file.name);
-      return enqueueCommit(function () {
-        return commitFiles([{ path: name, content: String(dataURL).split(',')[1], encoding: 'base64' }],
-          '上传 HTML 页面：' + name + '\n\n通过知识库在线编辑器提交');
-      }).then(function () { return name; });
-    });
-  }
-
-  function setMainPage(name) {
-    return apiReadFile(name).then(function (text) {
-      if (text == null) throw new Error('读不到 ' + name + ' 的内容');
-      return enqueueCommit(function () {
-        return commitFiles([{ path: 'index.html', content: text }],
-          '设为主页：' + name + '\n\n通过知识库在线编辑器提交');
-      });
-    });
-  }
-
-  function deleteHtmlPage(name) {
-    return enqueueCommit(function () {
-      return commitFiles([{ path: name, remove: true }],
-        '删除 HTML 页面：' + name + '\n\n通过知识库在线编辑器提交');
-    });
-  }
-
-  function viewPages() {
-    if (!getToken()) {
-      $('#app').innerHTML = '<div class="panel"><h2>需要访问令牌</h2>' +
-        '<p class="hint">管理 HTML 页面需要先配置访问令牌。令牌只存在你自己浏览器里。</p>' +
-        '<a class="btn primary" href="#/settings">前往设置</a></div>';
+  /* ---------------------------------------------------------
+     视图：编辑器
+     --------------------------------------------------------- */
+  function viewEdit(r) {
+    if (!isAuthor()) {
+      $('#app').innerHTML = '<div class="empty"><h2>需要访问令牌</h2>' +
+        '<p><a href="#/settings" style="color:var(--accent)">前往设置</a></p></div>';
       return;
     }
+    return loadLibrary().then(function () {
+      if (r.id) {
+        var it = itemById(r.id);
+        if (!it) { go('#/'); return; }
+        if (it.type === 'note') return noteEditor(it);
+        if (it.type === 'image') return imageEditor(it);
+        return pageEditor(it);
+      }
+      if (!r.type) return typeChooser();
+      if (r.type === 'note') return noteEditor(null);
+      if (r.type === 'image') return imageEditor(null);
+      return pageEditor(null);
+    });
+  }
 
-    function rowHtml(p, isMain) {
-      var url = pageURL(p.name);
-      return '<div class="page-row">' +
-        '<div class="page-info">' +
-        '<div class="page-name">' + (isMain ? '🏠 ' : '📄 ') + esc(p.name) + '</div>' +
-        '<div class="page-url">' + esc(url) + '</div>' +
+  function typeChooser() {
+    document.title = '新建';
+    $('#app').innerHTML = '<div class="panel">' +
+      '<div class="page-head"><h1>新建</h1></div>' +
+      '<div class="kinds">' +
+      kindCard('note', '文字', 'Markdown 排版，可插入图片') +
+      kindCard('image', '图片', '上传一张图片') +
+      kindCard('page', '页面', '带交互的 HTML') +
+      '</div></div>';
+    $$('.kind').forEach(function (el) {
+      el.addEventListener('click', function () { go('#/new/' + el.getAttribute('data-k')); });
+    });
+  }
+  function kindCard(k, t, d) {
+    return '<button class="kind" data-k="' + k + '"><div class="t">' + t + '</div><div class="d">' + d + '</div></button>';
+  }
+
+  /* ---------- 文字 ---------- */
+  function noteEditor(it) {
+    var isNew = !it;
+    document.title = isNew ? '新建文字' : '编辑';
+    var model = it || { id: '', type: 'note', title: '', date: today(), tags: [], path: '' };
+
+    readFile(model.path || '__none__').then(function (raw) {
+      var body = raw ? splitFront(raw).body : '';
+      if (raw) {
+        var fm = splitFront(raw);
+        if (fm.meta.title) model.title = model.title || fm.meta.title;
+      }
+
+      $('#app').innerHTML = '<div class="panel" style="max-width:1000px">' +
+        '<div class="page-head"><h1>' + (isNew ? '新建文字' : '编辑') + '</h1></div>' +
+        '<div class="field"><input id="f-title" type="text" placeholder="标题" value="' + esc(model.title) + '"></div>' +
+        '<div class="row">' +
+        '<div class="field"><label>日期</label><input id="f-date" type="date" value="' + esc(model.date || today()) + '"></div>' +
+        '<div class="field"><label>标签</label><input id="f-tags" type="text" placeholder="用逗号分隔" value="' + esc((model.tags || []).join(', ')) + '"></div>' +
         '</div>' +
-        '<div class="page-ops">' +
-        '<a class="btn sm" href="' + esc(url) + '" target="_blank" rel="noopener">打开</a>' +
-        '<button class="btn sm" data-copy="' + esc(url) + '">复制链接</button>' +
-        (isMain ? '' :
-          '<button class="btn sm" data-main="' + esc(p.name) + '">设为主页</button>' +
-          '<button class="btn sm danger" data-del="' + esc(p.name) + '">删除</button>') +
-        '</div></div>';
+        '<div class="split">' +
+        '<div><textarea id="f-body" class="field code" style="width:100%;min-height:420px" placeholder="正文">' + esc(body) + '</textarea>' +
+        '<div class="hint" style="color:var(--muted);font-size:12.5px;margin-top:6px">图片可直接粘贴或拖入</div></div>' +
+        '<div class="preview" id="pv"></div>' +
+        '</div>' +
+        '<div class="form-actions">' +
+        '<button class="btn primary" id="f-save">保存</button>' +
+        '<button class="btn" id="f-img">插入图片</button>' +
+        '<button class="btn ghost" id="f-cancel">取消</button>' +
+        '<span class="spacer"></span><span class="count" id="f-count"></span>' +
+        '</div>' +
+        '<input type="file" id="f-file" accept="image/*" multiple hidden></div>';
+
+      var ta = $('#f-body'), pv = $('#pv'), cnt = $('#f-count');
+      function refresh() {
+        pv.innerHTML = ta.value.trim() ? markdown(ta.value) : '<p class="ph">预览</p>';
+        patchBlobs(pv);
+        cnt.textContent = ta.value.length + ' 字';
+      }
+      ta.addEventListener('input', refresh);
+      refresh();
+
+      function insert(text) {
+        var s = ta.selectionStart == null ? ta.value.length : ta.selectionStart;
+        var pre = (s > 0 && !/\n$/.test(ta.value.slice(0, s))) ? '\n' : '';
+        ta.value = ta.value.slice(0, s) + pre + text + '\n' + ta.value.slice(ta.selectionEnd == null ? s : ta.selectionEnd);
+        ta.focus();
+        refresh();
+      }
+
+      function accept(files) {
+        var list = Array.prototype.filter.call(files || [], function (f) { return /^image\//.test(f.type); });
+        if (!list.length) return;
+        list.forEach(function (f) {
+          var ph = '![](uploading-' + Math.random().toString(36).slice(2, 7) + ')';
+          insert(ph);
+          toast('正在上传…');
+          uploadImage(f).then(function (p) {
+            ta.value = ta.value.split(ph).join('![](' + p + ')');
+            refresh();
+            toast('图片已插入');
+          }).catch(function (e) {
+            ta.value = ta.value.split(ph).join('');
+            refresh();
+            toast(friendly(e), 'err');
+          });
+        });
+      }
+
+      $('#f-img').addEventListener('click', function () { $('#f-file').click(); });
+      $('#f-file').addEventListener('change', function (e) { accept(e.target.files); e.target.value = ''; });
+      ta.addEventListener('paste', function (e) {
+        var items = (e.clipboardData && e.clipboardData.items) || [], fs = [];
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].kind === 'file') { var f = items[i].getAsFile(); if (f) fs.push(f); }
+        }
+        if (fs.length) { e.preventDefault(); accept(fs); }
+      });
+      ta.addEventListener('dragover', function (e) { e.preventDefault(); ta.style.borderColor = 'var(--accent)'; });
+      ta.addEventListener('dragleave', function () { ta.style.borderColor = ''; });
+      ta.addEventListener('drop', function (e) {
+        e.preventDefault(); ta.style.borderColor = '';
+        if (e.dataTransfer && e.dataTransfer.files) accept(e.dataTransfer.files);
+      });
+
+      $('#f-cancel').addEventListener('click', function () { go(isNew ? '#/' : '#/i/' + encodeURIComponent(model.id)); });
+      $('#f-save').addEventListener('click', function () {
+        var title = $('#f-title').value.trim() || '未命名';
+        var bodyText = ta.value;
+        var item = {
+          id: isNew ? slugify(title) : model.id,
+          type: 'note',
+          title: title,
+          date: $('#f-date').value || today(),
+          tags: $('#f-tags').value.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean),
+          summary: plainText(bodyText, title),
+          path: isNew ? 'content/' + slugify(title) + '.md' : model.path
+        };
+        var img = firstImage(bodyText);
+        if (img && !/^https?:/i.test(img)) item.cover = img;
+        if (isNew && itemById(item.id)) item.id = item.path = 'content/' + uid('n') + '.md';
+        if (item.path.indexOf('content/') !== 0) item.path = 'content/' + item.path;
+
+        var btn = $('#f-save');
+        btn.disabled = true; btn.textContent = '保存中';
+        queue(function () {
+          var idx = LIB.items.map(function (x) { return x.id; }).indexOf(item.id);
+          if (idx >= 0) {
+            if (LIB.items[idx].path !== item.path) { /* 保留原路径 */ item.path = LIB.items[idx].path; }
+            LIB.items[idx] = item;
+          } else LIB.items.push(item);
+          return commit([
+            { path: item.path, content: buildNote(item, bodyText) },
+            { path: LIB_PATH, content: libJSON() }
+          ], (isNew ? '添加 ' : '更新 ') + title);
+        }).then(function () {
+          loaded = false;
+          toast('已保存');
+          go('#/i/' + encodeURIComponent(item.id));
+        }).catch(function (e) {
+          btn.disabled = false; btn.textContent = '保存';
+          toast(friendly(e), 'err');
+        });
+      });
+    });
+  }
+
+  /* ---------- 图片 ---------- */
+  function imageEditor(it) {
+    var isNew = !it;
+    document.title = isNew ? '新建图片' : '编辑';
+    var model = it || { id: '', type: 'image', title: '', date: today(), path: '' };
+
+    $('#app').innerHTML = '<div class="panel">' +
+      '<div class="page-head"><h1>' + (isNew ? '新建图片' : '编辑') + '</h1></div>' +
+      '<div class="field"><input id="g-title" type="text" placeholder="标题" value="' + esc(model.title) + '"></div>' +
+      '<div class="row">' +
+      '<div class="field"><label>日期</label><input id="g-date" type="date" value="' + esc(model.date || today()) + '"></div>' +
+      '<div class="field"><label>标签</label><input id="g-tags" type="text" placeholder="用逗号分隔" value="' + esc((model.tags || []).join(', ')) + '"></div>' +
+      '</div>' +
+      (isNew
+        ? '<div class="drop" id="g-drop">选择或拖入一张图片</div>'
+        : '<img class="thumb" src="' + esc(model.path) + '" alt="">') +
+      '<div class="form-actions">' +
+      '<button class="btn primary" id="g-save"' + (isNew ? ' disabled' : '') + '>保存</button>' +
+      '<button class="btn ghost" id="g-cancel">取消</button>' +
+      '</div>' +
+      '<input type="file" id="g-file" accept="image/*" hidden></div>';
+
+    var picked = null;
+    var drop = $('#g-drop');
+    if (drop) {
+      var pick = function () { $('#g-file').click(); };
+      drop.addEventListener('click', pick);
+      drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
+      drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+      drop.addEventListener('drop', function (e) {
+        e.preventDefault(); drop.classList.remove('over');
+        if (e.dataTransfer && e.dataTransfer.files[0]) take(e.dataTransfer.files[0]);
+      });
+      $('#g-file').addEventListener('change', function (e) {
+        if (e.target.files[0]) take(e.target.files[0]);
+        e.target.value = '';
+      });
+      function take(f) {
+        if (!/^image\//.test(f.type)) { toast('请选择图片', 'err'); return; }
+        picked = f;
+        if (!picked) return;
+        var url = URL.createObjectURL(f);
+        drop.innerHTML = '<img src="' + url + '" style="max-height:300px;margin:0 auto;border-radius:8px">';
+        drop.style.padding = '10px';
+        var gs = $('#g-save'); if (gs) gs.disabled = false;
+        if (!$('#g-title').value) $('#g-title').value = f.name.replace(/\.[^.]+$/, '');
+      }
     }
 
-    function draw() {
-      $('#app').innerHTML = '<div class="loading"><span class="spinner"></span> 读取页面列表…</div>';
-      listHtmlPages().then(function (pages) {
-        var main = pages.filter(function (p) { return /^index\.html?$/i.test(p.name); })[0];
-        var others = pages.filter(function (p) { return p !== main; });
-
-        $('#app').innerHTML = '<div class="panel">' +
-          '<h2>HTML 页面</h2>' +
-          '<p class="hint">把 <code>.html</code> 文件放进仓库，就自动拥有一个 https:// 网址。' +
-          '上传后可以「设为主页」，主链接就会显示它。</p>' +
-          '<div class="notice">主链接：<a href="' + esc(pageURL('index.html')) + '" target="_blank" rel="noopener">' +
-          esc(pageURL('index.html')) + '</a></div>' +
-          '<div class="actions" style="margin-top:0;border:0;padding-top:6px">' +
-          '<button class="btn primary" id="p-upload">📤 上传 HTML 文件</button>' +
-          '<span class="count">支持一次选多个</span>' +
-          '</div>' +
-          '<input type="file" id="p-input" accept=".html,.htm,text/html" multiple hidden>' +
-          '<h3 class="page-h">当前主页</h3>' +
-          (main ? rowHtml(main, true) : '<p class="hint">根目录没有 index.html</p>') +
-          '<h3 class="page-h">其他页面（' + others.length + '）</h3>' +
-          (others.length ? others.map(function (p) { return rowHtml(p, false); }).join('')
-            : '<p class="hint">还没有其他页面，点上面的按钮上传一个试试。</p>') +
-          '<div class="notice" style="margin-top:24px">' +
-          '<strong>上传后的地址规律</strong><br>' +
-          '文件名 <code>作业1.html</code> → <code>' + esc(siteBase()) + '作业1.html</code>' +
-          '</div>' +
-          '</div>';
-
-        $('#p-upload').addEventListener('click', function () { $('#p-input').click(); });
-        $('#p-input').addEventListener('change', function (e) {
-          var files = Array.prototype.filter.call(e.target.files || [], function (f) {
-            return /\.html?$/i.test(f.name) || f.type === 'text/html';
-          });
-          e.target.value = '';
-          if (!files.length) { toast('请选择 .html 文件', 'err'); return; }
-          toast('正在上传 ' + files.length + ' 个文件…');
-          files.reduce(function (chain, f) {
-            return chain.then(function () { return uploadHtmlFile(f); });
-          }, Promise.resolve()).then(function () {
-            toast('上传完成，正在刷新…', 'ok');
-            setTimeout(draw, 600);
-          }).catch(function (err) { toast('上传失败：' + friendlyError(err), 'err'); });
+    $('#g-cancel').addEventListener('click', function () { go(isNew ? '#/' : '#/i/' + encodeURIComponent(model.id)); });
+    $('#g-save').addEventListener('click', function () {
+      var btn = $('#g-save');
+      btn.disabled = true; btn.textContent = '保存中';
+      var title = $('#g-title').value.trim() || '未命名';
+      var next = function (path) {
+        var item = {
+          id: isNew ? uid('i') : model.id, type: 'image', title: title,
+          date: $('#g-date').value || today(),
+          tags: $('#g-tags').value.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean),
+          summary: '', path: path || model.path
+        };
+        return queue(function () {
+          var idx = LIB.items.map(function (x) { return x.id; }).indexOf(item.id);
+          if (idx >= 0) LIB.items[idx] = item; else LIB.items.push(item);
+          return commit([{ path: LIB_PATH, content: libJSON() }], (isNew ? '添加图片 ' : '更新 ') + title);
+        }).then(function () { return item; });
+      };
+      (isNew ? uploadImage(picked).then(next) : next(model.path))
+        .then(function (item) {
+          loaded = false;
+          toast('已保存');
+          go('#/i/' + encodeURIComponent(item.id));
+        })
+        .catch(function (e) {
+          btn.disabled = false; btn.textContent = '保存';
+          toast(friendly(e), 'err');
         });
+    });
+  }
 
-        $('#app').addEventListener('click', function (e) {
-          var t = e.target;
-          if (!t || t.tagName !== 'BUTTON') return;
-          var url = t.getAttribute('data-copy');
-          var name = t.getAttribute('data-main');
-          var del = t.getAttribute('data-del');
+  /* ---------- 页面 ---------- */
+  function pageEditor(it) {
+    var isNew = !it;
+    document.title = isNew ? '新建页面' : '编辑';
+    var model = it || { id: '', type: 'page', title: '', date: today(), path: '' };
 
-          if (url) { copyText(url, '链接已复制'); return; }
-          if (name) {
-            t.disabled = true; t.textContent = '设置中…';
-            setMainPage(name).then(function () {
-              toast('已设为主页', 'ok');
-              setTimeout(draw, 600);
-            }).catch(function (err) {
-              t.disabled = false; t.textContent = '设为主页';
-              toast('设置失败：' + friendlyError(err), 'err');
-            });
-            return;
-          }
-          if (del) {
-            if (!confirm('确定删除 ' + del + '？此操作会提交到 GitHub，可从历史记录恢复。')) return;
-            t.disabled = true; t.textContent = '删除中…';
-            deleteHtmlPage(del).then(function () {
-              toast('已删除', 'ok');
-              setTimeout(draw, 600);
-            }).catch(function (err) {
-              t.disabled = false; t.textContent = '删除';
-              toast('删除失败：' + friendlyError(err), 'err');
-            });
-          }
-        });
-      }).catch(function (e) {
-        $('#app').innerHTML = '<div class="panel"><h2>读取失败</h2>' +
-          '<p class="hint">' + esc(friendlyError(e)) + '</p>' +
-          '<a class="btn" href="#/">返回</a></div>';
+    $('#app').innerHTML = '<div class="panel">' +
+      '<div class="page-head"><h1>' + (isNew ? '新建页面' : '编辑') + '</h1></div>' +
+      '<div class="field"><input id="h-title" type="text" placeholder="标题" value="' + esc(model.title) + '"></div>' +
+      '<div class="row">' +
+      '<div class="field"><label>日期</label><input id="h-date" type="date" value="' + esc(model.date || today()) + '"></div>' +
+      '<div class="field"><label>标签</label><input id="h-tags" type="text" placeholder="用逗号分隔" value="' + esc((model.tags || []).join(', ')) + '"></div>' +
+      '</div>' +
+      (isNew ? '<div class="drop" id="h-drop">选择或拖入一个 .html 文件</div>' : '') +
+      '<div class="field" style="margin-top:16px"><label>HTML</label>' +
+      '<textarea id="h-code" class="field code" style="width:100%;min-height:320px" placeholder="&lt;!DOCTYPE html&gt;…"></textarea></div>' +
+      '<div class="form-actions">' +
+      '<button class="btn primary" id="h-save">保存</button>' +
+      '<button class="btn ghost" id="h-cancel">取消</button>' +
+      '</div>' +
+      '<input type="file" id="h-file" accept=".html,.htm,text/html" hidden></div>';
+
+    if (!isNew) {
+      readFile(model.path).then(function (raw) { $('#h-code').value = raw || ''; });
+    }
+
+    var drop = $('#h-drop');
+    if (drop) {
+      var take = function (f) {
+        if (!/\.html?$/i.test(f.name) && f.type !== 'text/html') { toast('请选择 .html 文件', 'err'); return; }
+        var fr = new FileReader();
+        fr.onload = function () {
+          $('#h-code').value = fr.result;
+          if (!$('#h-title').value) $('#h-title').value = f.name.replace(/\.html?$/i, '');
+          drop.textContent = '已载入 ' + f.name;
+        };
+        fr.readAsText(f);
+      };
+      drop.addEventListener('click', function () { $('#h-file').click(); });
+      drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
+      drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+      drop.addEventListener('drop', function (e) {
+        e.preventDefault(); drop.classList.remove('over');
+        if (e.dataTransfer && e.dataTransfer.files[0]) take(e.dataTransfer.files[0]);
+      });
+      $('#h-file').addEventListener('change', function (e) {
+        if (e.target.files[0]) take(e.target.files[0]);
+        e.target.value = '';
       });
     }
 
-    draw();
+    $('#h-cancel').addEventListener('click', function () { go(isNew ? '#/' : '#/i/' + encodeURIComponent(model.id)); });
+    $('#h-save').addEventListener('click', function () {
+      var code = $('#h-code').value;
+      if (!code.trim()) { toast('内容为空', 'err'); return; }
+      var title = $('#h-title').value.trim() || '未命名';
+      var id = isNew ? uid('p') : model.id;
+      var path = isNew ? 'content/pages/' + id + '.html' : model.path;
+      var item = {
+        id: id, type: 'page', title: title, date: $('#h-date').value || today(),
+        tags: $('#h-tags').value.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean),
+        summary: '', path: path
+      };
+      var btn = $('#h-save');
+      btn.disabled = true; btn.textContent = '保存中';
+      queue(function () {
+        var idx = LIB.items.map(function (x) { return x.id; }).indexOf(item.id);
+        if (idx >= 0) LIB.items[idx] = item; else LIB.items.push(item);
+        return commit([
+          { path: path, content: code },
+          { path: LIB_PATH, content: libJSON() }
+        ], (isNew ? '添加页面 ' : '更新 ') + title);
+      }).then(function () {
+        loaded = false;
+        toast('已保存');
+        go('#/i/' + encodeURIComponent(item.id));
+      }).catch(function (e) {
+        btn.disabled = false; btn.textContent = '保存';
+        toast(friendly(e), 'err');
+      });
+    });
   }
 
-  /* ---------------- 视图：设置 ---------------- */
+  /* ---------------------------------------------------------
+     视图：设置
+     --------------------------------------------------------- */
   function viewSettings() {
+    document.title = '设置';
     $('#app').innerHTML = '<div class="panel">' +
-      '<h2>设置</h2>' +
-      '<p class="hint">仓库信息决定站点从哪里读写内容；访问令牌让你能在网页上直接保存。</p>' +
-
-      '<div class="field"><label for="s-owner">GitHub 用户名</label>' +
-      '<input id="s-owner" type="text" placeholder="例如 octocat" value="' + esc(CFG.owner) + '"></div>' +
-
-      '<div class="field"><label for="s-repo">仓库名</label>' +
-      '<input id="s-repo" type="text" placeholder="例如 knowledge-hub" value="' + esc(CFG.repo) + '"></div>' +
-
-      '<div class="field"><label for="s-branch">分支</label>' +
-      '<input id="s-branch" type="text" placeholder="main" value="' + esc(CFG.branch) + '"></div>' +
-
-      '<div class="field"><label for="s-token">访问令牌（Personal Access Token）</label>' +
-      '<input id="s-token" type="password" placeholder="github_pat_… 或 ghp_…" value="' + esc(getToken()) + '">' +
-      '<div class="note">' +
-      '令牌只保存在<strong>你自己这台浏览器</strong>的 localStorage 里，不会提交到仓库，也不会发给任何第三方。<br>' +
-      '需要的最小权限（Fine-grained token）：<code>Contents: Read and write</code>。' +
-      '</div></div>' +
-
-      '<div id="s-result"></div>' +
-
-      '<div class="actions">' +
-      '<button class="btn primary" id="s-save">保存设置</button>' +
+      '<div class="page-head"><h1>设置</h1></div>' +
+      '<div class="field"><label>站点标题</label><input id="s-title" type="text" value="' + esc(LIB.site.title || CFG.title || '') + '"></div>' +
+      '<div class="field"><label>站点副标题</label><input id="s-desc" type="text" value="' + esc(LIB.site.desc || CFG.desc || '') + '"></div>' +
+      '<div class="row">' +
+      '<div class="field"><label>GitHub 用户名</label><input id="s-owner" type="text" value="' + esc(CFG.owner) + '"></div>' +
+      '<div class="field"><label>仓库名</label><input id="s-repo" type="text" value="' + esc(CFG.repo) + '"></div>' +
+      '</div>' +
+      '<div class="field"><label>访问令牌</label><input id="s-token" type="password" value="' + esc(getToken()) + '">' +
+      '<div class="hint">仅保存在本浏览器。需要 <code>repo</code> 和 <code>workflow</code> 权限。</div></div>' +
+      '<div id="s-msg"></div>' +
+      '<div class="form-actions">' +
+      '<button class="btn primary" id="s-save">保存</button>' +
       '<button class="btn" id="s-test">测试连接</button>' +
-      '<button class="btn danger" id="s-clear">清除令牌</button>' +
-      '</div>' +
-
-      '<div class="notice" style="margin-top:26px">' +
-      '<strong>怎么生成令牌？</strong><br>' +
-      '打开 <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> → ' +
-      'Repository access 选 <em>Only select repositories</em> 并勾选你的知识库仓库 → ' +
-      'Permissions 里把 <em>Contents</em> 设为 <em>Read and write</em> → 生成后复制粘贴到上面。' +
-      '</div>' +
-      '</div>';
+      '<button class="btn ghost" id="s-clear">清除令牌</button>' +
+      '</div></div>';
 
     $('#s-save').addEventListener('click', function () {
       CFG.owner = $('#s-owner').value.trim();
       CFG.repo = $('#s-repo').value.trim();
-      CFG.branch = $('#s-branch').value.trim() || 'main';
       setToken($('#s-token').value.trim());
-      persistCfg();
-      toast('设置已保存', 'ok');
-      setTimeout(function () { go('#/'); }, 400);
+      saveCfg();
+      var title = $('#s-title').value.trim(), desc = $('#s-desc').value.trim();
+      if (isAuthor() && configured() && (title !== LIB.site.title || desc !== LIB.site.desc)) {
+        LIB.site = { title: title, desc: desc };
+        queue(function () {
+          return commit([{ path: LIB_PATH, content: libJSON() }], '更新站点信息');
+        }).then(function () { loaded = false; toast('已保存'); go('#/'); })
+          .catch(function (e) { toast(friendly(e), 'err'); });
+      } else {
+        toast('已保存');
+        go('#/');
+      }
     });
 
     $('#s-clear').addEventListener('click', function () {
-      setToken('');
-      $('#s-token').value = '';
-      toast('令牌已从本机清除', 'ok');
+      setToken(''); $('#s-token').value = ''; toast('已清除');
     });
 
     $('#s-test').addEventListener('click', function () {
       CFG.owner = $('#s-owner').value.trim();
       CFG.repo = $('#s-repo').value.trim();
-      CFG.branch = $('#s-branch').value.trim() || 'main';
       setToken($('#s-token').value.trim());
-      persistCfg();
-      var box = $('#s-result');
-      box.innerHTML = '<div class="notice"><span class="spinner"></span> 正在测试…</div>';
-      ghFetch(repoPath(''))
-        .then(function (info) {
-          var canWrite = info.permissions && info.permissions.push;
-          box.innerHTML = '<div class="notice ok">连接成功：<strong>' + esc(info.full_name) +
-            '</strong>（默认分支 ' + esc(info.default_branch) + '）' +
-            (canWrite ? '，令牌具备写入权限 ✅' : '。注意：令牌可能没有写入权限，保存时可能失败。') +
-            '</div>';
-        })
-        .catch(function (e) {
-          box.innerHTML = '<div class="notice err">连接失败：' + esc(e.message) + '</div>';
-        });
+      saveCfg();
+      var box = $('#s-msg');
+      box.innerHTML = '<div class="notice">检查中…</div>';
+      gh(rp('')).then(function (info) {
+        var w = info.permissions && info.permissions.push;
+        box.innerHTML = '<div class="notice ok">' + esc(info.full_name) +
+          (w ? ' · 可写入' : ' · 只读') + '</div>';
+      }).catch(function (e) {
+        box.innerHTML = '<div class="notice err">' + esc(friendly(e)) + '</div>';
+      });
     });
   }
 
-  /* ---------------- 渲染入口 ---------------- */
+  /* ---------------------------------------------------------
+     渲染
+     --------------------------------------------------------- */
   function render() {
-    var route = parseHash();
-    document.title = (CFG.title || '知识库');
-    $('#site-title').textContent = CFG.title || '知识库';
-    $('#site-title').href = '#/';
-    $('#site-desc').textContent = CFG.desc || '';
+    var r = route();
+    $('#fab').className = (isAuthor() && r.v !== 'edit' && r.v !== 'settings') ? 'show' : '';
+    $('#btn-search').style.display = (r.v === 'list') ? '' : 'none';
+    if (r.v !== 'list' && r.v !== 'settings') $('#site-title').textContent = LIB.site.title || CFG.title || '';
 
-    // 没配置令牌的访客看不到「写笔记」入口，站点更像纯阅读的知识库。
-    // 「设置」保持可见，方便作者在新设备上配置令牌。
-    var navNew = $('#nav-new');
-    if (navNew) navNew.style.display = getToken() ? '' : 'none';
-
-    var footer = $('#footer-info');
-    if (footer) {
-      footer.innerHTML = configured()
-        ? '<a href="https://github.com/' + encodeURIComponent(CFG.owner) + '/' + encodeURIComponent(CFG.repo) +
-        '" target="_blank" rel="noopener">' + esc(CFG.owner + '/' + CFG.repo) + '</a>' +
-        '<span class="sep">·</span><span>托管于 GitHub Pages</span>'
-        : '<span>尚未配置仓库，请先到</span><a href="#/settings">设置</a><span>填写。</span>';
-    }
-
-    if (!configured() && route.view !== 'settings') {
-      $('#app').innerHTML = '<div class="panel">' +
-        '<h2>先完成一次设置</h2>' +
-        '<p class="hint">填写 GitHub 用户名和仓库名后，站点就知道该读取哪里的内容了。</p>' +
-        '<a class="btn primary" href="#/settings">前往设置</a></div>';
+    if (!configured() && r.v !== 'settings') {
+      $('#app').innerHTML = '<div class="empty"><h2>尚未配置</h2>' +
+        '<p><a href="#/settings" style="color:var(--accent)">前往设置</a></p></div>';
       return;
     }
 
-    $('#app').innerHTML = '<div class="loading"><span class="spinner"></span> 加载中…</div>';
+    if (r.v === 'settings') {
+      loadLibrary().then(viewSettings);
+      return;
+    }
 
+    $('#app').innerHTML = spin();
     var p;
-    if (route.view === 'list') p = viewList(route);
-    else if (route.view === 'note') p = viewNote(route);
-    else if (route.view === 'edit') p = viewEdit(route);
-    else if (route.view === 'pages') { viewPages(); return; }
-    else { viewSettings(); return; }
+    if (r.v === 'list') p = viewList();
+    else if (r.v === 'item') p = viewItem(r);
+    else p = viewEdit(r);
 
-    Promise.resolve(p).catch(function (e) {
-      $('#app').innerHTML = '<div class="panel"><h2>出错了</h2>' +
-        '<p class="hint">' + esc(e.message || e) + '</p>' +
-        '<a class="btn" href="#/">返回列表</a></div>';
-    });
+    if (p && p.catch) {
+      p.catch(function (e) {
+        $('#app').innerHTML = '<div class="empty"><h2>出错了</h2><p>' + esc(friendly(e)) + '</p></div>';
+      });
+    }
   }
 
+  /* ---------------------------------------------------------
+     启动
+     --------------------------------------------------------- */
+  $('#btn-search').addEventListener('click', function () {
+    searchOpen = !searchOpen;
+    var sp = $('#sp');
+    if (sp) { sp.classList.toggle('open', searchOpen); if (searchOpen) $('#sq').focus(); }
+    else { searchOpen = true; viewList().then(function () { $('#sq').focus(); }); }
+  });
+
+  $('#fab').addEventListener('click', function () { go('#/new'); });
+
   window.addEventListener('hashchange', render);
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', render);
-  } else render();
+  window.addEventListener('scroll', function () {
+    $('#topbar').classList.toggle('scrolled', window.scrollY > 4);
+  }, { passive: true });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
+  else render();
 })();
