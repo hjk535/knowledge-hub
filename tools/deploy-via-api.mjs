@@ -284,7 +284,7 @@ async function main() {
     const siteDiff = [];
     if (localLib && localLib.site) {
       for (const k of Object.keys(localLib.site)) {
-        if (k === 'generated') continue;
+        if (k === 'generated' || k === 'removed') continue;
         if (JSON.stringify(remote.site && remote.site[k]) !== JSON.stringify(localLib.site[k])) {
           siteDiff.push(k);
         }
@@ -292,19 +292,38 @@ async function main() {
     }
     if (siteDiff.length) console.log(`    + 站点配置以本地为准：${siteDiff.join('、')}`);
 
+    // 删除清单：本地已删、但线上还留着的文件与条目
+    // （部署只会上传/覆盖，不会自动删远端文件，所以删除必须显式声明）
+    const removedList = (localLib && localLib.site && localLib.site.removed) || [];
+    const removedSet = new Set(removedList);
+    if (removedSet.size) {
+      const before = remote.items.length;
+      remote.items = remote.items.filter((it) => !removedSet.has(it.path));
+      const dropped = before - remote.items.length;
+      if (dropped) console.log(`    - 移除条目 ${dropped} 个`);
+    }
+
     overrides['data/library.json'] = buildLibraryJSON(mergedSite, remote.items);
   } else {
     const local = await readFile(path.join(ROOT, 'data', 'library.json'), 'utf8').catch(() => null);
     if (local != null) overrides['data/library.json'] = local;
   }
 
-  // 清掉早期版本遗留的文件
+  // 清掉早期版本遗留的文件，以及本地声明的删除清单里、远端仍存在的文件
   const remoteTree = await api('GET', `/repos/${owner}/${args.repo}/git/trees/${encodeURIComponent(args.branch)}?recursive=1`);
   const remotePaths = new Set((remoteTree.tree || []).map((n) => n.path));
-  const removals = LEGACY_FILES.filter((p) => remotePaths.has(p));
+
+  const localLibForRemovals = await readFile(path.join(ROOT, 'data', 'library.json'), 'utf8')
+    .then((s) => JSON.parse(s)).catch(() => null);
+  const declaredRemoved = (localLibForRemovals && localLibForRemovals.site
+    && localLibForRemovals.site.removed) || [];
+
+  const removals = Array.from(new Set(
+    LEGACY_FILES.concat(declaredRemoved).filter((p) => remotePaths.has(p))
+  ));
 
   const files = localFiles.concat(Object.keys(overrides));
-  console.log(`    共 ${files.length} 个文件` + (removals.length ? `，清理 ${removals.length} 个旧文件` : ''));
+  console.log(`    共 ${files.length} 个文件` + (removals.length ? `，清理远端 ${removals.length} 个文件` : ''));
 
   const entries = [];
   for (const rel of removals) entries.push({ path: rel, mode: '100644', type: 'blob', sha: null });

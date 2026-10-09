@@ -5,26 +5,26 @@
    ============================================================ */
 
 :root {
-  /* --- 浅色（默认） --- */
-  --bg: #f6f4ee;
-  --bg-texture: repeating-linear-gradient(0deg, rgba(18, 38, 58, .032) 0 1px, transparent 1px 7px);
-  --surface: #fffdf8;
-  --surface-2: #efece3;
+  /* --- 浅色（默认）· 航海志：偏黄的做旧纸 --- */
+  --bg: #f3e7cc;
+  --bg-texture: repeating-linear-gradient(0deg, rgba(120, 88, 30, .05) 0 1px, transparent 1px 7px);
+  --surface: #fdf6e4;
+  --surface-2: #ecdfc0;
   --text: #12263a;
-  --text-2: #41576b;
-  --muted: #5f7286;
-  --border: #d5cebc;
-  --border-2: #b3aa91;
+  --text-2: #4a5b69;
+  --muted: #556775;
+  --border: #d3c39d;
+  --border-2: #b8a374;
   --accent: #8a5a12;
-  --accent-soft: #f0e6d2;
-  --accent-on: #fffdf8;
+  --accent-soft: #eddfba;
+  --accent-on: #fdf6e4;
   --danger: #a8342a;
-  --topbar: rgba(246, 244, 238, .86);
+  --topbar: rgba(243, 231, 204, .88);
 
   --radius: 10px;
   --radius-sm: 6px;
-  --shadow-1: 0 1px 2px rgba(18, 38, 58, .05);
-  --shadow-2: 0 4px 16px rgba(18, 38, 58, .09);
+  --shadow-1: 0 1px 2px rgba(90, 66, 24, .07);
+  --shadow-2: 0 4px 16px rgba(90, 66, 24, .12);
 
   --maxw: 1080px;
   --readw: 720px;
