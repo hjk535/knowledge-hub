@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>视觉方向样张 · 伟大航路知识库</title>
+<style>
+  /* ============ 样张外壳（不属于任何方案） ============ */
+  * { box-sizing: border-box; }
+  body { margin:0; background:#202024; }
+  .switcher {
+    position: sticky; top:0; z-index:99; display:flex; gap:8px; align-items:center;
+    padding:10px 18px; background:#111114; border-bottom:1px solid #2c2c31;
+    font: 500 13px/1 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    color:#a1a1aa; flex-wrap: wrap;
+  }
+  .switcher b { color:#e4e4e7; font-weight:650; margin-right:6px; }
+  .switcher button {
+    font:inherit; padding:7px 14px; border-radius:7px; cursor:pointer;
+    border:1px solid #35353b; background:#1b1b1f; color:#d4d4d8;
+  }
+  .switcher button.on { background:#e4e4e7; border-color:#e4e4e7; color:#111114; font-weight:620; }
+  .switcher .tip { margin-left:auto; font-size:12px; color:#71717a; }
+  .stage { padding:22px; }
+  .frame { max-width:1180px; margin:0 auto; border:1px solid #35353b; border-radius:14px; overflow:hidden; }
+
+  /* ============ 方案切换：只切 class ============ */
+  .scheme { --_pad:0; }
+
+  /* ---------------------------------------------------------------
+     基线排版与结构（三案共用，靠变量区分气质）
+     --------------------------------------------------------------- */
+  .app { min-height:100px; }
+  .app * { box-sizing:border-box; }
+  /* 抹掉浏览器默认链接样式：全站只有标题/导航用强调色，正文一律继承 */
+  .app a { color:inherit; text-decoration:none; }
+  .app h3 a, .app .back { color:inherit; }
+
+  .bar { display:flex; align-items:center; gap:14px; height:60px; padding:0 26px; }
+  .bar .mark { display:flex; align-items:center; gap:9px; font-weight:650; letter-spacing:-.01em; }
+  .bar .mark svg { width:19px; height:19px; }
+  .bar nav { margin-left:auto; display:flex; gap:20px; font-size:13.5px; }
+  .bar nav a { opacity:.72; }
+  .bar nav a.on { opacity:1; }
+
+  .wrap { max-width:1080px; margin:0 auto; padding:0 26px; }
+
+  .hero { padding:46px 0 38px; }
+  .hero .coord { font-size:11px; letter-spacing:.14em; text-transform:uppercase; opacity:.5; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .hero h1 { margin:14px 0 0; font-size:40px; font-weight:680; letter-spacing:-.03em; line-height:1.16; }
+  .hero .sub { margin:12px 0 0; font-size:16.5px; line-height:1.7; max-width:52ch; opacity:.72; }
+  .hero .stats { display:flex; gap:30px; margin-top:26px; flex-wrap:wrap; }
+  .hero .stat .n { font-size:23px; font-weight:660; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing:-.02em; }
+  .hero .stat .l { font-size:12px; opacity:.55; margin-top:3px; letter-spacing:.04em; }
+
+  .sec-head { display:flex; align-items:baseline; gap:12px; margin:0 0 18px; }
+  .sec-head h2 { margin:0; font-size:15px; font-weight:640; letter-spacing:.02em; }
+  .sec-head .line { flex:1; }
+  .sec-head .more { font-size:12.5px; opacity:.6; }
+
+  /* 航线式条目列表（替代卡片墙） */
+  .route { display:flex; flex-direction:column; }
+  .stop { display:grid; grid-template-columns:96px 1fr auto; gap:20px; align-items:start; padding:19px 0; }
+  .stop .co { font-size:11.5px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; opacity:.55; letter-spacing:.06em; padding-top:3px; }
+  .stop h3 { margin:0; font-size:17.5px; font-weight:620; letter-spacing:-.015em; line-height:1.45; }
+  .stop p { margin:7px 0 0; font-size:14px; line-height:1.68; opacity:.7; }
+  .stop .tags { margin-top:9px; display:flex; gap:7px; flex-wrap:wrap; }
+  .stop .tag { font-size:11.5px; padding:2px 8px; letter-spacing:.02em; }
+  .stop .kind { font-size:11.5px; letter-spacing:.1em; text-transform:uppercase;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; opacity:.5; padding-top:3px; }
+
+  /* 文章页 */
+  .art { max-width:78ch; margin:0 auto; padding:44px 0 90px; }
+  .art .back { font-size:13px; opacity:.6; }
+  .art h1 { margin:20px 0 0; font-size:33px; font-weight:670; letter-spacing:-.028em; line-height:1.24; }
+  .art .meta { margin-top:11px; font-size:13px; opacity:.55; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .art .body { margin-top:32px; font-size:16.5px; line-height:1.82; }
+  .art .body h2 { font-size:20px; font-weight:650; margin:2em 0 .6em; letter-spacing:-.018em; }
+  .art .body p { margin:0 0 1.1em; }
+  .art .body strong { font-weight:650; }
+  .art .body code { font-size:.885em; padding:.14em .4em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .art .body table { border-collapse:collapse; width:100%; font-size:14.5px; margin:0 0 1.2em; }
+  .art .body th, .art .body td { padding:8px 12px; text-align:left; }
+  .pull { margin:0 0 1.2em; padding:2px 0 2px 18px; }
+
+  /* 页脚 */
+  .foot { padding:30px 0 46px; font-size:12.5px; opacity:.5;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; letter-spacing:.05em; }
+  .foot .row { display:flex; gap:18px; flex-wrap:wrap; }
+
+  /* ===============================================================
+     方案 A · 现代海图  
+     签名：纸感底 + 墨蓝 + 黄铜金单一强调色；等深线代替卡片边框；
+           坐标当固定装置；数字等宽。
+     =============================================================== */
+  .frame.scheme.a .app {
+    --paper:#f6f4ee; --paper2:#efece3; --ink:#12263a; --ink2:#41576b;
+    --rule:#d5cebc; --rule2:#b3aa91; --brass:#8a5a12; --brass-soft:#f0e6d2;
+    background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+    /* 等深线：横向细纹，极淡，充当"纸的纹理" */
+    background-image:repeating-linear-gradient(0deg, rgba(18,38,58,.032) 0 1px, transparent 1px 7px);
+  }
+  .frame.scheme.a .bar { border-bottom:1px solid var(--rule); background:color-mix(in srgb,#f6f4ee 88%, transparent); }
+  .frame.scheme.a .bar .mark { color:var(--ink); }
+  .frame.scheme.a .bar .mark svg { color:var(--brass); }
+  .frame.scheme.a .bar nav a.on { color:var(--brass); opacity:1; }
+  .frame.scheme.a .hero .coord { color:var(--brass); opacity:.85; }
+  .frame.scheme.a .hero .stat .n { color:var(--brass); }
+  .frame.scheme.a .sec-head .line { border-bottom:1px solid var(--rule); }
+  .frame.scheme.a .sec-head h2 { color:var(--ink); }
+  .frame.scheme.a .stop { border-top:1px solid var(--rule); }
+  .frame.scheme.a .stop:first-child { border-top:2px solid var(--ink); }
+  .frame.scheme.a .stop .co { color:var(--brass); opacity:.8; }
+  .frame.scheme.a .stop .kind { color:var(--ink2); }
+  /* 悬停：右侧黄铜航线箭头 */
+  .frame.scheme.a .stop { position:relative; transition:background .16s; }
+  .frame.scheme.a .stop:hover { background:var(--paper2); }
+  .frame.scheme.a .stop h3 { transition:color .16s; }
+  .frame.scheme.a .stop:hover h3 { color:var(--brass); }
+  .frame.scheme.a .stop .tag { border:1px solid var(--rule2); color:var(--ink2); background:transparent; }
+  .frame.scheme.a .art .back { color:var(--brass); }
+  .frame.scheme.a .art .body code { background:var(--brass-soft); color:#6f4c12; }
+  .frame.scheme.a .art .body th, .scheme.a .art .body td { border-bottom:1px solid var(--rule); }
+  .frame.scheme.a .art .body th { color:var(--ink2); border-bottom:1px solid var(--rule2); }
+  .frame.scheme.a .pull { border-left:2px solid var(--brass); color:var(--ink2); }
+  .frame.scheme.a .foot { border-top:1px solid var(--rule); }
+
+  /* ===============================================================
+     方案 B · 航海日志 / 手稿
+     签名：暖纸 + 墨黑 + 朱砂；衬线正文；条目按"日志第 N 日"排列；
+           手写感只用于章节序号。
+     =============================================================== */
+  .frame.scheme.b .app {
+    --paper:#f2e9d6; --paper2:#eae0c9; --ink:#2a2119; --ink2:#5c4f3e;
+    --rule:#d3c4a4; --rule2:#bfae8b; --seal:#9c2f22;
+    background:var(--paper); color:var(--ink);
+    font-family:"Songti SC","Noto Serif CJK SC","Source Han Serif SC","SimSun",
+                Georgia,"Times New Roman",serif;
+    background-image:
+      radial-gradient(circle at 18% 12%, rgba(150,120,70,.06), transparent 42%),
+      radial-gradient(circle at 84% 66%, rgba(150,120,70,.05), transparent 46%);
+  }
+  .frame.scheme.b .bar { border-bottom:1px solid var(--rule); }
+  .frame.scheme.b .bar .mark { font-family:"Songti SC","Noto Serif CJK SC",Georgia,serif; font-size:16px; }
+  .frame.scheme.b .bar .mark svg { color:var(--seal); }
+  .frame.scheme.b .bar nav { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+  .frame.scheme.b .bar nav a.on { color:var(--seal); opacity:1; }
+  .frame.scheme.b .hero h1 { font-weight:600; }
+  .frame.scheme.b .hero .coord { color:var(--seal); opacity:.8; font-family:inherit; font-style:italic; letter-spacing:.06em; text-transform:none; }
+  .frame.scheme.b .hero .sub { font-size:17px; }
+  .frame.scheme.b .hero .stat .n { color:var(--seal); font-family:inherit; font-weight:600; }
+  .frame.scheme.b .sec-head h2 { font-size:14px; letter-spacing:.1em; color:var(--ink2); font-weight:600; }
+  .frame.scheme.b .sec-head .line { border-bottom:1px solid var(--rule); }
+  .frame.scheme.b .stop { border-top:1px solid rgba(191,174,139,.55); }
+  .frame.scheme.b .stop .co { font-family:inherit; font-style:italic; color:var(--seal); opacity:.85; }
+  .frame.scheme.b .stop .kind { font-family:-apple-system,"PingFang SC",sans-serif; letter-spacing:.14em; }
+  .frame.scheme.b .stop h3 { font-weight:600; }
+  .frame.scheme.b .stop:hover h3 { color:var(--seal); }
+  .frame.scheme.b .stop:hover { background:var(--paper2); }
+  .frame.scheme.b .stop .tag { border:1px solid var(--rule2); color:var(--ink2); border-radius:2px; }
+  .frame.scheme.b .art .body { font-size:17px; line-height:1.9; }
+  .frame.scheme.b .art h1 { font-weight:600; }
+  .frame.scheme.b .art .back { color:var(--seal); }
+  .frame.scheme.b .art .body code { background:var(--paper2); color:#7a2418; font-family:ui-monospace,Menlo,monospace; }
+  .frame.scheme.b .art .body th, .scheme.b .art .body td { border-bottom:1px solid var(--rule); }
+  .frame.scheme.b .pull { border-left:3px double var(--seal); color:var(--ink2); font-style:italic; }
+  .frame.scheme.b .foot { border-top:1px solid var(--rule); font-family:inherit; font-style:italic; }
+
+  /* ===============================================================
+     方案 C · 深海声呐
+     签名：近黑墨蓝 + 声呐青 + 热力橙；直角细边框；网格与坐标轴当装饰；
+           可视化优先。
+     =============================================================== */
+  .frame.scheme.c .app {
+    --bg:#070d16; --pan:#0d1622; --line:#1c2b3d; --line2:#2a3f57;
+    --fg:#dce7f2; --fg2:#8ea3ba; --cyan:#35d0c4; --amber:#ffab3d;
+    background:var(--bg); color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background-image:
+      linear-gradient(rgba(53,208,196,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(53,208,196,.045) 1px, transparent 1px);
+    background-size:56px 56px, 56px 56px;
+  }
+  .frame.scheme.c .bar { border-bottom:1px solid var(--line); background:rgba(7,13,22,.86); }
+  .frame.scheme.c .bar .mark svg { color:var(--cyan); }
+  .frame.scheme.c .bar nav { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px; letter-spacing:.06em; }
+  .frame.scheme.c .bar nav a.on { color:var(--cyan); opacity:1; }
+  .frame.scheme.c .hero .coord { color:var(--cyan); opacity:.75; }
+  .frame.scheme.c .hero h1 { font-weight:640; }
+  .frame.scheme.c .hero .sub { color:var(--fg2); opacity:1; }
+  .frame.scheme.c .hero .stat .n { color:var(--cyan); }
+  .frame.scheme.c .hero .stat .n.amber { color:var(--amber); }
+  .frame.scheme.c .sec-head h2 { font-family:ui-monospace,Menlo,monospace; font-size:12.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--fg2); }
+  .frame.scheme.c .sec-head .line { border-bottom:1px solid var(--line); }
+  .frame.scheme.c .stop { border:1px solid var(--line); border-radius:0; padding:18px 20px; margin-bottom:-1px; }
+  .frame.scheme.c .stop:hover { background:var(--pan); border-color:var(--line2); }
+  .frame.scheme.c .stop:hover h3 { color:var(--cyan); }
+  .frame.scheme.c .stop .co { color:var(--cyan); opacity:.7; }
+  .frame.scheme.c .stop .kind { color:var(--amber); opacity:.85; }
+  .frame.scheme.c .stop .tag { border:1px solid var(--line2); color:var(--fg2); border-radius:0; }
+  .frame.scheme.c .art .back { color:var(--cyan); }
+  .frame.scheme.c .art .body code { background:var(--pan); border:1px solid var(--line); color:var(--cyan); }
+  .frame.scheme.c .art .body th, .scheme.c .art .body td { border-bottom:1px solid var(--line); }
+  .frame.scheme.c .art .body th { color:var(--cyan); }
+  .frame.scheme.c .pull { border-left:2px solid var(--amber); color:var(--fg2); }
+  .frame.scheme.c .foot { border-top:1px solid var(--line); }
+
+  /* 微调：小屏 */
+  @media (max-width:720px){
+    .stop { grid-template-columns:1fr auto; gap:10px; }
+    .stop .co { display:none; }
+    .hero h1 { font-size:30px; }
+    .bar nav { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="switcher">
+  <b>视觉方向样张</b>
+  <button data-s="a" class="on">A 现代海图</button>
+  <button data-s="b">B 航海日志</button>
+  <button data-s="c">C 深海声呐</button>
+  <span class="tip">三套皮肤 · 同一个首页 + 同一篇文章 · 点上方切换</span>
+</div>
+
+<div class="stage">
+<div class="frame scheme a" id="frame">
+<div class="app" id="app">
+  <!-- ============ 首页 ============ -->
+  <div id="v-home" class="sview">
+    <div class="bar">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>
+          <path d="M15.5 8.5 13 13l-4.5 2.5L11 11z" fill="currentColor" stroke="none"/>
+        </svg>
+        伟大航路知识库
+      </span>
+      <nav>
+        <a href="#" class="on">首页</a><a href="#">数据监测</a><a href="#">方法笔记</a>
+        <a href="#">参考书目</a><a href="#">关于</a>
+      </nav>
+    </div>
+
+    <div class="wrap">
+      <div class="hero">
+        <div class="coord">GRAND LINE OBSERVATORY · 20°S–20°N · 120°E–80°W</div>
+        <h1>把海洋的每一次呼吸<br>记进同一张航图</h1>
+        <p class="sub">物理海洋观测与知识整理。EOF 分解、ENSO 监测、海表热收支——
+          用可复现的数据讲清楚每一个现象，而不是只给结论。</p>
+        <div class="stats">
+          <div class="stat"><div class="n">88.1%</div><div class="l">前 8 模态累计方差</div></div>
+          <div class="stat"><div class="n">1991–2020</div><div class="l">气候基准期</div></div>
+          <div class="stat"><div class="n">1,626</div><div class="l">热带太平洋格点</div></div>
+        </div>
+      </div>
+
+      <div class="sec-head">
+        <h2>航路 · 全部内容</h2><span class="line"></span>
+        <span class="more">共 4 篇 · 按时间</span>
+      </div>
+
+      <div class="route">
+        <a class="stop" href="#">
+          <div class="co">2026.10.09</div>
+          <div>
+            <h3>EOF 主成分分析 · 热带太平洋海表温度</h3>
+            <p>把 SST 距平场分解成空间模态与时间系数，第一模态正是 ENSO。含 1,626 格点的实时计算与逐月重建动画。</p>
+            <div class="tags"><span class="tag">EOF</span><span class="tag">SST</span><span class="tag">ENSO</span></div>
+          </div>
+          <div class="kind">Page</div>
+        </a>
+        <a class="stop" href="#">
+          <div class="co">2026.10.09</div>
+          <div>
+            <h3>EOF 主成分分析 · 讲解视频</h3>
+            <p>58 秒讲清 EOF：从赤道太平洋 10 个浮标的数据，到 1997 与 2015 两次超强厄尔尼诺。</p>
+            <div class="tags"><span class="tag">视频</span><span class="tag">ENSO</span></div>
+          </div>
+          <div class="kind">Video</div>
+        </a>
+        <a class="stop" href="#">
+          <div class="co">2026.10.08</div>
+          <div>
+            <h3>物理海洋九题分享</h3>
+            <p>混合层深度、副热带与副极地温盐结构、海表热收支四项量级——课堂问答整理。</p>
+            <div class="tags"><span class="tag">课堂知识分享</span></div>
+          </div>
+          <div class="kind">Note</div>
+        </a>
+        <a class="stop" href="#">
+          <div class="co">2026.02.14</div>
+          <div>
+            <h3>Markdown 语法</h3>
+            <p>文本 标题 列表 引用 链接与图片 代码块 表格 分隔线。</p>
+            <div class="tags"><span class="tag">参考</span></div>
+          </div>
+          <div class="kind">Note</div>
+        </a>
+      </div>
+
+      <div class="foot">
+        <div class="row">
+          <span>N 20°00′ · S 20°00′</span><span>E 120°00′ · W 80°00′</span>
+          <span>DATA NOAA ERSSTv5 / CPC</span><span>UPDATED 2026.10.09</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 文章页 ============ -->
+  <div id="v-art" class="sview" hidden>
+    <div class="bar">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>
+          <path d="M15.5 8.5 13 13l-4.5 2.5L11 11z" fill="currentColor" stroke="none"/>
+        </svg>
+        伟大航路知识库
+      </span>
+      <nav><a href="#">首页</a><a href="#" class="on">方法笔记</a><a href="#">参考书目</a></nav>
+    </div>
+    <div class="wrap">
+      <article class="art">
+        <a class="back" href="#">← 返回航路</a>
+        <h1>混合层深度由什么决定</h1>
+        <div class="meta"><span>2026.10.08</span><span>·</span><span>课堂知识分享</span><span>·</span><span>约 6 分钟</span></div>
+        <div class="body">
+          <p>混合层是海洋与大气交换热量、动量和气体的那一层。它的深度不是固定的，
+            而是<strong>湍流动能与浮力恢复力之间博弈的结果</strong>——风往里灌能量，
+            层结把水往上推。</p>
+          <h2>风搅拌能到多深</h2>
+          <p>典型深度约 <code>10–100 m</code>。中纬度夏季只有几十米，冬季可达 100–200 m。
+            深度取决于风速与持续时间，以及层结强度：湍流动能必须先克服浮力才能继续往下混。</p>
+          <div class="pull">
+            风给的是能量，层结给的是阻力；混合层深度就是这两者的平衡点。
+          </div>
+          <h2>降温驱动的对流能到多深</h2>
+          <p>一旦表层变重失稳，对流在浮力驱动下可以持续向下"挖掘"，深度远超风混合：</p>
+          <table>
+            <tr><th>海区</th><th>冬季对流深度</th><th>主导机制</th></tr>
+            <tr><td>中纬度</td><td>数百米</td><td>季节冷却</td></tr>
+            <tr><td>拉布拉多海 / 格陵兰海</td><td>1000–2000 m 甚至更深</td><td>深对流</td></tr>
+            <tr><td>威德尔海</td><td>1000 m 以上</td><td>盐析与冷却</td></tr>
+          </table>
+          <h2>两个过程共同维持温跃层</h2>
+          <p>风生潜沉把表层暖水沿等密度面下沉，湍流扩散—上升流平衡则让温跃层维持陡峭梯度
+            而不至于无限加深。两者缺一，温跃层都不成立。</p>
+        </div>
+      </article>
+      <div class="foot"><div class="row"><span>METHOD · MIXED LAYER</span><span>SOURCE Talley et al.</span></div></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+  var btns = document.querySelectorAll('.switcher button');
+  var frame = document.getElementById('frame');
+  var vHome = document.getElementById('v-home');
+  var vArt  = document.getElementById('v-art');
+  var SCHEMES = ['a', 'b', 'c'];
+
+  function applyScheme(s) {
+    if (SCHEMES.indexOf(s) < 0) s = 'a';
+    frame.className = 'frame scheme ' + s;
+    btns.forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-s') === s); });
+    return s;
+  }
+
+  function applyView(v) {
+    var art = (v === 'art');
+    vHome.hidden = art;
+    vArt.hidden  = !art;
+  }
+
+  /* 支持深链：#a / #b-art 之类 */
+  function fromHash() {
+    var h = (location.hash || '').replace(/^#/, '');
+    var m = /^([abc])(?:-(art|home))?$/.exec(h);
+    if (!m) return;
+    applyScheme(m[1]);
+    applyView(m[2] || 'home');
+  }
+
+  function currentScheme() {
+    var on = document.querySelector('.switcher button.on');
+    return on ? on.getAttribute('data-s') : 'a';
+  }
+
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var s = applyScheme(b.getAttribute('data-s'));
+      location.hash = s + (vArt.hidden ? '' : '-art');
+    });
+  });
+
+  /* 按 A 键在首页 / 文章之间切换 */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'a' && e.key !== 'A') return;
+    var art = vArt.hidden;
+    applyView(art ? 'art' : 'home');
+    location.hash = currentScheme() + (art ? '-art' : '');
+  });
+
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+</script>
+</body>
+</html>

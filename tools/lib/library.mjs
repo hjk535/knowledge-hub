@@ -67,6 +67,28 @@ function htmlTitle(html) {
 }
 
 /**
+ * 只属于「人工维护」的字段：构建时若缺省一律沿用旧值。
+ *
+ * 这些字段无法从文件内容推导，一旦丢失就只能靠人重填，所以必须显式搬运。
+ * 区别于 title / date / tags：那几项 Markdown 的 front matter 里有权威值，
+ * front matter 说了算，旧值只作兜底。
+ *
+ * 加新的人工字段时，往这里加一行即可（series / related 已按此约定预留）。
+ */
+const HUMAN_FIELDS = ['pin', 'series', 'related'];
+
+/** 把旧条目里存在的人工字段搬到新条目上 */
+function carryHuman(old, item) {
+  for (const k of HUMAN_FIELDS) {
+    const v = old && old[k];
+    if (v === undefined || v === null || v === '') continue;
+    if (Array.isArray(v) && !v.length) continue;
+    item[k] = v;
+  }
+  return item;
+}
+
+/**
  * 把仓库里的文件对齐成 items 数组。
  *
  * @param {Array} prevItems       现有的 items（保留其中的元信息与顺序）
@@ -75,13 +97,15 @@ function htmlTitle(html) {
  */
 export function reconcile(prevItems, files) {
   const prev = Array.isArray(prevItems) ? prevItems : [];
+  const list = Array.isArray(files) ? files : [];
   const byPath = new Map();
   for (const it of prev) if (it && it.path) byPath.set(it.path, it);
 
   const kept = new Map();   // path -> item
   const now = new Date().toISOString().slice(0, 10);
 
-  for (const f of files) {
+  for (const f of list) {
+    if (!f || !f.path) continue;
     const path = f.path;
 
     // 笔记：content/xxx.md（不含子目录）
@@ -100,14 +124,14 @@ export function reconcile(prevItems, files) {
       };
       const cover = firstImage(body);
       if (cover) item.cover = cover;
-      kept.set(path, item);
+      kept.set(path, carryHuman(old, item));
       continue;
     }
 
     // 页面：content/pages/xxx.html
     if (/^content\/pages\/.+\.html?$/i.test(path)) {
       const old = byPath.get(path);
-      kept.set(path, {
+      kept.set(path, carryHuman(old, {
         id: (old && old.id) || path.replace(/^content\/pages\//, '').replace(/\.html?$/i, ''),
         type: 'page',
         title: (old && old.title) || htmlTitle(f.content) || path.split('/').pop(),
@@ -115,7 +139,7 @@ export function reconcile(prevItems, files) {
         tags: (old && old.tags) || [],
         summary: (old && old.summary) || '',
         path,
-      });
+      }));
       continue;
     }
 
@@ -134,7 +158,7 @@ export function reconcile(prevItems, files) {
       };
       const poster = 'content/videos/' + base + '.jpg';
       if (files.some((f) => f.path === poster)) item.cover = poster;
-      kept.set(path, item);
+      kept.set(path, carryHuman(old, item));
       continue;
     }
 
@@ -167,3 +191,4 @@ export function buildLibraryJSON(site, items) {
     items: sortItems(items),
   }, null, 2) + '\n';
 }
+

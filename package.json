@@ -1,0 +1,15 @@
+{
+  "name": "knowledge-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "One Piece 物理海洋知识库 —— 索引驱动的静态内容站",
+  "type": "module",
+  "scripts": {
+    "dev": "node tools/dev-server.mjs 8080",
+    "build": "node tools/build-index.mjs",
+    "test": "node --test tools/test/library.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

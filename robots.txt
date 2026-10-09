@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hjk535.github.io/knowledge-hub/sitemap.xml

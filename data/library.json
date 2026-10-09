@@ -1,8 +1,15 @@
 {
-  "generated": "2026-10-09T01:42:22.754Z",
+  "generated": "2026-10-09T07:48:56.641Z",
   "site": {
-    "title": "我的空间",
-    "desc": ""
+    "title": "One Piece 物理海洋知识库",
+    "desc": "物理海洋观测与知识整理。EOF 分解、ENSO 监测、海表热收支——用可复现的数据把每一个现象讲清楚，而不是只给结论。",
+    "coords": "GRAND LINE OBSERVATORY · 20°S–20°N · 120°E–80°W",
+    "tickets": [],
+    "featured": [
+      "eof",
+      "eof-explained",
+      "markdown-guide"
+    ]
   },
   "items": [
     {

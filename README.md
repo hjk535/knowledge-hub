@@ -103,6 +103,40 @@ node tools/deploy-via-api.mjs --repo <仓库名>
 `build-index.mjs` 会依据 `content/` 下的真实文件对齐 `note` 与 `page` 条目，
 并保留图片条目和站点信息。
 
+**人工维护的字段不会被构建覆盖**，放心手改：
+
+- `site` 下的任意字段（`title` / `desc` / `coords` / `featured` / `tickets` …）
+- 条目的 `pin`（精选排序）、`series`（航线分组）、`related`（继续航行）
+
+---
+
+## 出门票
+
+首页最底部的卡片墙，用来把各人的作品汇总到一页。
+数据放在 `data/library.json` 的 `site.tickets`，**自己复制粘贴**即可：
+
+```json
+"tickets": [
+  {
+    "no": 1,
+    "title": "混合层热收支",
+    "desc": "用浮标数据算一遍混合层热量平衡",
+    "href": "content/tickets/1.pdf",
+    "img": "content/images/ticket-1.jpg"
+  }
+]
+```
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `no` | 否 | 编号，会显示成 `01`、`02`；不填按顺序自动编号 |
+| `title` | 否 | 标题；不填显示「出门票 N」 |
+| `desc` | 否 | 一行说明，最多显示 3 行 |
+| `href` | 否 | 链接（PDF 或网页）。有则整张卡可点，**没有也不会出现死链** |
+| `img` | 否 | 封面图路径，建议 `content/images/…`；不填就不显示图 |
+
+留空数组时，首页会显示一行「这里还没有内容」的提示，不会出现空白区块。
+
 ---
 
 ## 换成自己的域名

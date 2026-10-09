@@ -158,6 +158,20 @@ async function rebuildRemoteLibrary(owner) {
   return { items, site, json: buildLibraryJSON(site, items), count: items.length };
 }
 
+/* ---------------- 站点配置合并 ---------------- */
+/**
+ * 部署时的站点配置以本地为准。
+ *
+ * 理由：title / desc / coords / featured / tickets 都是人工维护的字段，
+ * 本地是编辑它们的唯一入口（网页编辑器改的也是这一份）。若以线上为准，
+ * 刚粘贴的出门票会在部署时被静默丢弃。
+ *
+ * 只补不删：线上有、本地没有的字段保留，避免本地副本不全时把线上配置抹掉。
+ */
+function mergeSite(remoteSite, localSite) {
+  return Object.assign({}, remoteSite || {}, localSite || {});
+}
+
 /* ---------------- 文件收集 ---------------- */
 async function collectFiles(dir, base = '') {
   const out = [];
@@ -261,7 +275,24 @@ async function main() {
       }
       if (added) console.log(`    + 补充本地新增条目 ${added} 个`);
     }
-    overrides['data/library.json'] = buildLibraryJSON(remote.site, remote.items);
+
+    // 站点配置（title / desc / coords / featured / tickets …）以本地为准。
+    //
+    // 关键：上面这些本地新增条目只进了 items，没进 site。如果不合并，
+    // 刚在本地粘贴好的 site.tickets 会被 remote.site 整个覆盖、静默丢失。
+    const mergedSite = localLib ? mergeSite(remote.site, localLib.site) : remote.site;
+    const siteDiff = [];
+    if (localLib && localLib.site) {
+      for (const k of Object.keys(localLib.site)) {
+        if (k === 'generated') continue;
+        if (JSON.stringify(remote.site && remote.site[k]) !== JSON.stringify(localLib.site[k])) {
+          siteDiff.push(k);
+        }
+      }
+    }
+    if (siteDiff.length) console.log(`    + 站点配置以本地为准：${siteDiff.join('、')}`);
+
+    overrides['data/library.json'] = buildLibraryJSON(mergedSite, remote.items);
   } else {
     const local = await readFile(path.join(ROOT, 'data', 'library.json'), 'utf8').catch(() => null);
     if (local != null) overrides['data/library.json'] = local;

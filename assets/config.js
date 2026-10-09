@@ -7,7 +7,9 @@ window.SITE_CONFIG = {
   repo: "knowledge-hub",
   // 分支
   branch: "main",
-  // 默认站点标题与副标题（可在「设置」页里改，改完对所有访客生效）
-  title: "我的空间",
-  desc: ""
+  // 兜底站点标题与副标题。
+  // 真正的值以 data/library.json 的 site.title / site.desc 为准（可在「设置」页改）；
+  // 这里只在索引拿不到 title 时使用，所以别再填占位文字。
+  title: "One Piece 物理海洋知识库",
+  desc: "物理海洋观测与知识整理。EOF 分解、ENSO 监测、海表热收支——用可复现的数据把每一个现象讲清楚。"
 };
