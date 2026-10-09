@@ -11,5 +11,5 @@ window.SITE_CONFIG = {
   // 真正的值以 data/library.json 的 site.title / site.desc 为准（可在「设置」页改）；
   // 这里只在索引拿不到 title 时使用，所以别再填占位文字。
   title: "hjkd 物理海洋知识库",
-  desc: "物理海洋观测与知识整理。EOF 分解、海表热收支——用可复现的数据把每一个现象讲清楚。"
+  desc: "物理海洋观测与知识整理。EOF 分解、海表热收支。"
 };

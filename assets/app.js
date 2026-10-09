@@ -900,7 +900,9 @@
         $('#app').innerHTML = back + '<article class="article wide">' +
           '<header><h1>' + esc(it.title || '') + '</h1>' +
           '<div class="meta">' + metaHTML(it) + '</div></header>' +
-          '<div class="frame-wrap"><video src="' + esc(it.path) + '" controls preload="metadata" playsinline></video></div>' +
+          // loop：短片自动循环，看完不用手动重播
+          '<div class="frame-wrap"><video src="' + esc(it.path) +
+          '" controls preload="metadata" playsinline loop></video></div>' +
           footHTML(it) + '</article>';
         afterItem(it);
         return;
