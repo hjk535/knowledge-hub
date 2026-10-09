@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的 HTML 页面示例</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff; padding: 24px;
+  }
+  .card {
+    background: rgba(255, 255, 255, .14);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 18px; padding: 44px 40px;
+    max-width: 620px; width: 100%;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .25);
+  }
+  h1 { margin: 0 0 6px; font-size: 30px; }
+  .sub { margin: 0 0 26px; opacity: .82; font-size: 15px; }
+  ul { padding-left: 20px; line-height: 2; margin: 0 0 26px; }
+  code {
+    background: rgba(0, 0, 0, .28); padding: 2px 7px;
+    border-radius: 5px; font-size: 13.5px;
+  }
+  .box {
+    background: rgba(0, 0, 0, .22); border-radius: 10px;
+    padding: 14px 18px; font-size: 14px; line-height: 1.9;
+    word-break: break-all; margin-bottom: 22px;
+  }
+  button {
+    background: #fff; color: #5b3fa8; border: 0;
+    padding: 11px 24px; border-radius: 9px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: inherit;
+  }
+  button:hover { opacity: .88; }
+  #msg { margin-top: 14px; font-size: 14px; min-height: 20px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>👋 这是一个纯 HTML 页面</h1>
+    <p class="sub">它和知识库没有关系，就是仓库里的一个普通文件。</p>
+
+    <ul>
+      <li>文件名：<code>demo.html</code></li>
+      <li>位置：仓库根目录</li>
+      <li>网址：<code>…/knowledge-hub/demo.html</code></li>
+    </ul>
+
+    <div class="box">
+      你可以在这里放<b>任何东西</b>：作业、简历、小游戏、数据图表……<br>
+      只要文件在仓库里，就自动有了一个 <b>https://</b> 开头的链接，谁都能打开。
+    </div>
+
+    <button onclick="document.getElementById('msg').textContent =
+      '✅ JavaScript 也正常工作！当前时间：' + new Date().toLocaleString('zh-CN')">
+      点我测试 JavaScript
+    </button>
+    <div id="msg"></div>
+  </div>
+</body>
+</html>
