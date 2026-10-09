@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-09T01:41:58.719Z",
+  "generated": "2026-10-09T01:42:22.754Z",
   "site": {
     "title": "我的空间",
     "desc": ""
@@ -21,7 +21,8 @@
       "date": "2026-10-09",
       "tags": [],
       "summary": "",
-      "path": "content/videos/eof-explained.mp4"
+      "path": "content/videos/eof-explained.mp4",
+      "cover": "content/videos/eof-explained.jpg"
     },
     {
       "id": "九题分享",
