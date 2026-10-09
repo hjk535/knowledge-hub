@@ -480,6 +480,7 @@
     if (seg[0] === 'tag' && seg[1]) return { view: 'list', tag: seg.slice(1).join('/') };
     if (seg[0] === 'new') return { view: 'edit', slug: null };
     if (seg[0] === 'edit' && seg[1]) return { view: 'edit', slug: seg.slice(1).join('/') };
+    if (seg[0] === 'pages') return { view: 'pages' };
     if (seg[0] === 'settings') return { view: 'settings' };
     return { view: 'list' };
   }
@@ -825,6 +826,164 @@
     });
   }
 
+  /* ---------------- 视图：HTML 页面管理 ---------------- */
+  function siteBase() {
+    // 站点根目录（去掉 kb.html / index.html 这类文件名）
+    return location.origin + location.pathname.replace(/[^\/]*$/, '');
+  }
+  function pageURL(name) { return siteBase() + name; }
+
+  function listHtmlPages() {
+    return ghFetch(repoPath('/contents') + '?ref=' + encodeURIComponent(CFG.branch) + '&t=' + Date.now())
+      .then(function (items) {
+        return (Array.isArray(items) ? items : [])
+          .filter(function (f) { return f.type === 'file' && /\.html?$/i.test(f.name); })
+          .map(function (f) { return { name: f.name, size: f.size }; });
+      });
+  }
+
+  function safeHtmlName(name) {
+    var n = String(name || '').replace(/[^\w\u4e00-\u9fa5.\-]/g, '_');
+    if (!/\.html?$/i.test(n)) n += '.html';
+    return n;
+  }
+
+  function uploadHtmlFile(file) {
+    return fileToDataURL(file).then(function (dataURL) {
+      var name = safeHtmlName(file.name);
+      return enqueueCommit(function () {
+        return commitFiles([{ path: name, content: String(dataURL).split(',')[1], encoding: 'base64' }],
+          '上传 HTML 页面：' + name + '\n\n通过知识库在线编辑器提交');
+      }).then(function () { return name; });
+    });
+  }
+
+  function setMainPage(name) {
+    return apiReadFile(name).then(function (text) {
+      if (text == null) throw new Error('读不到 ' + name + ' 的内容');
+      return enqueueCommit(function () {
+        return commitFiles([{ path: 'index.html', content: text }],
+          '设为主页：' + name + '\n\n通过知识库在线编辑器提交');
+      });
+    });
+  }
+
+  function deleteHtmlPage(name) {
+    return enqueueCommit(function () {
+      return commitFiles([{ path: name, remove: true }],
+        '删除 HTML 页面：' + name + '\n\n通过知识库在线编辑器提交');
+    });
+  }
+
+  function viewPages() {
+    if (!getToken()) {
+      $('#app').innerHTML = '<div class="panel"><h2>需要访问令牌</h2>' +
+        '<p class="hint">管理 HTML 页面需要先配置访问令牌。令牌只存在你自己浏览器里。</p>' +
+        '<a class="btn primary" href="#/settings">前往设置</a></div>';
+      return;
+    }
+
+    function rowHtml(p, isMain) {
+      var url = pageURL(p.name);
+      return '<div class="page-row">' +
+        '<div class="page-info">' +
+        '<div class="page-name">' + (isMain ? '🏠 ' : '📄 ') + esc(p.name) + '</div>' +
+        '<div class="page-url">' + esc(url) + '</div>' +
+        '</div>' +
+        '<div class="page-ops">' +
+        '<a class="btn sm" href="' + esc(url) + '" target="_blank" rel="noopener">打开</a>' +
+        '<button class="btn sm" data-copy="' + esc(url) + '">复制链接</button>' +
+        (isMain ? '' :
+          '<button class="btn sm" data-main="' + esc(p.name) + '">设为主页</button>' +
+          '<button class="btn sm danger" data-del="' + esc(p.name) + '">删除</button>') +
+        '</div></div>';
+    }
+
+    function draw() {
+      $('#app').innerHTML = '<div class="loading"><span class="spinner"></span> 读取页面列表…</div>';
+      listHtmlPages().then(function (pages) {
+        var main = pages.filter(function (p) { return /^index\.html?$/i.test(p.name); })[0];
+        var others = pages.filter(function (p) { return p !== main; });
+
+        $('#app').innerHTML = '<div class="panel">' +
+          '<h2>HTML 页面</h2>' +
+          '<p class="hint">把 <code>.html</code> 文件放进仓库，就自动拥有一个 https:// 网址。' +
+          '上传后可以「设为主页」，主链接就会显示它。</p>' +
+          '<div class="notice">主链接：<a href="' + esc(pageURL('index.html')) + '" target="_blank" rel="noopener">' +
+          esc(pageURL('index.html')) + '</a></div>' +
+          '<div class="actions" style="margin-top:0;border:0;padding-top:6px">' +
+          '<button class="btn primary" id="p-upload">📤 上传 HTML 文件</button>' +
+          '<span class="count">支持一次选多个</span>' +
+          '</div>' +
+          '<input type="file" id="p-input" accept=".html,.htm,text/html" multiple hidden>' +
+          '<h3 class="page-h">当前主页</h3>' +
+          (main ? rowHtml(main, true) : '<p class="hint">根目录没有 index.html</p>') +
+          '<h3 class="page-h">其他页面（' + others.length + '）</h3>' +
+          (others.length ? others.map(function (p) { return rowHtml(p, false); }).join('')
+            : '<p class="hint">还没有其他页面，点上面的按钮上传一个试试。</p>') +
+          '<div class="notice" style="margin-top:24px">' +
+          '<strong>上传后的地址规律</strong><br>' +
+          '文件名 <code>作业1.html</code> → <code>' + esc(siteBase()) + '作业1.html</code>' +
+          '</div>' +
+          '</div>';
+
+        $('#p-upload').addEventListener('click', function () { $('#p-input').click(); });
+        $('#p-input').addEventListener('change', function (e) {
+          var files = Array.prototype.filter.call(e.target.files || [], function (f) {
+            return /\.html?$/i.test(f.name) || f.type === 'text/html';
+          });
+          e.target.value = '';
+          if (!files.length) { toast('请选择 .html 文件', 'err'); return; }
+          toast('正在上传 ' + files.length + ' 个文件…');
+          files.reduce(function (chain, f) {
+            return chain.then(function () { return uploadHtmlFile(f); });
+          }, Promise.resolve()).then(function () {
+            toast('上传完成，正在刷新…', 'ok');
+            setTimeout(draw, 600);
+          }).catch(function (err) { toast('上传失败：' + friendlyError(err), 'err'); });
+        });
+
+        $('#app').addEventListener('click', function (e) {
+          var t = e.target;
+          if (!t || t.tagName !== 'BUTTON') return;
+          var url = t.getAttribute('data-copy');
+          var name = t.getAttribute('data-main');
+          var del = t.getAttribute('data-del');
+
+          if (url) { copyText(url, '链接已复制'); return; }
+          if (name) {
+            t.disabled = true; t.textContent = '设置中…';
+            setMainPage(name).then(function () {
+              toast('已设为主页', 'ok');
+              setTimeout(draw, 600);
+            }).catch(function (err) {
+              t.disabled = false; t.textContent = '设为主页';
+              toast('设置失败：' + friendlyError(err), 'err');
+            });
+            return;
+          }
+          if (del) {
+            if (!confirm('确定删除 ' + del + '？此操作会提交到 GitHub，可从历史记录恢复。')) return;
+            t.disabled = true; t.textContent = '删除中…';
+            deleteHtmlPage(del).then(function () {
+              toast('已删除', 'ok');
+              setTimeout(draw, 600);
+            }).catch(function (err) {
+              t.disabled = false; t.textContent = '删除';
+              toast('删除失败：' + friendlyError(err), 'err');
+            });
+          }
+        });
+      }).catch(function (e) {
+        $('#app').innerHTML = '<div class="panel"><h2>读取失败</h2>' +
+          '<p class="hint">' + esc(friendlyError(e)) + '</p>' +
+          '<a class="btn" href="#/">返回</a></div>';
+      });
+    }
+
+    draw();
+  }
+
   /* ---------------- 视图：设置 ---------------- */
   function viewSettings() {
     $('#app').innerHTML = '<div class="panel">' +
@@ -937,6 +1096,7 @@
     if (route.view === 'list') p = viewList(route);
     else if (route.view === 'note') p = viewNote(route);
     else if (route.view === 'edit') p = viewEdit(route);
+    else if (route.view === 'pages') { viewPages(); return; }
     else { viewSettings(); return; }
 
     Promise.resolve(p).catch(function (e) {

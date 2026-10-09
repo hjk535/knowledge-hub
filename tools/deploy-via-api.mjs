@@ -41,6 +41,7 @@ function parseArgs(argv) {
     else if (a === '--desc') out.desc = argv[++i];
     else if (a === '--branch') out.branch = argv[++i];
     else if (a === '--private') out.private = true;
+    else if (a === '--force-index') out.forceIndex = true;
     else if (a === '--dry-run') out.dryRun = true;
     else if (a === '--help' || a === '-h') out.help = true;
   }
@@ -66,6 +67,7 @@ function printHelp() {
   --desc       站点副标题
   --branch     分支名，默认 main
   --private    建私有仓库（免费账号私有仓库无法使用 Pages）
+  --force-index  强制用本地 index.html 覆盖线上（会覆盖你已设为主页的 HTML，慎用）
   --dry-run    只做检查，不写入任何东西
 
 部署完成后会打印形如 https://<用户名>.github.io/<仓库名>/ 的链接。
@@ -155,7 +157,11 @@ async function rawFile(owner, repoRelPath) {
       cache: 'no-store',
     }
   );
-  if (!res.ok) throw new Error(`读取 ${repoRelPath} 失败：HTTP ${res.status}`);
+  if (!res.ok) {
+    const e = new Error(`读取 ${repoRelPath} 失败：HTTP ${res.status}`);
+    e.status = res.status;
+    throw e;
+  }
   return res.text();
 }
 
@@ -287,10 +293,24 @@ async function main() {
     .concat(Object.keys(overrides));
   console.log(`    共 ${files.length} 个文件`);
 
+  // 根目录 index.html 归用户所有：一旦他们设了自己的主页，就不能再被覆盖。
+  // 判断依据是文件里是否还留着 kb-starter 标记。
+  let keepUserIndex = false;
+  try {
+    const remoteIndex = await rawFile(owner, 'index.html');
+    if (remoteIndex.indexOf('kb-starter') === -1) {
+      keepUserIndex = true;
+      console.log('    · 线上 index.html 是你自己的主页，本次不覆盖');
+    }
+  } catch (e) {
+    // 读不到（例如线上还没有 index.html）就按「不存在」处理，正常上传
+  }
+  const uploads = (keepUserIndex && !args.forceIndex) ? files.filter((f) => f !== 'index.html') : files;
+
   const entries = [];
   const CONCURRENCY = 6;
-  for (let i = 0; i < files.length; i += CONCURRENCY) {
-    const batch = files.slice(i, i + CONCURRENCY);
+  for (let i = 0; i < uploads.length; i += CONCURRENCY) {
+    const batch = uploads.slice(i, i + CONCURRENCY);
     const results = await Promise.all(batch.map(async (rel) => {
       let payload;
       if (overrides[rel] !== undefined) {
@@ -306,7 +326,7 @@ async function main() {
       return { path: rel, mode: '100644', type: 'blob', sha: blob.sha };
     }));
     entries.push(...results);
-    process.stdout.write(`\r    已上传 ${Math.min(i + CONCURRENCY, files.length)}/${files.length}`);
+    process.stdout.write(`\r    已上传 ${Math.min(i + CONCURRENCY, uploads.length)}/${uploads.length}`);
   }
   console.log('');
 
