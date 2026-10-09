@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-09T08:55:18.694Z",
+  "generated": "2026-10-09T08:57:20.686Z",
   "site": {
     "title": "hjkd 物理海洋知识库",
     "desc": "物理海洋观测与知识整理。EOF 分解、海表热收支——用可复现的数据把每一个现象讲清楚，而不是只给结论。",
@@ -38,18 +38,19 @@
       "date": "2026-10-09",
       "tags": [],
       "summary": "",
-      "path": "content/pages/eof.html"
+      "path": "content/pages/eof.html",
+      "pin": 1
     },
     {
       "id": "eof-explained",
       "type": "video",
-      "title": "EOF 主成分分析 · 30 秒动画讲解",
+      "title": "EOF 是怎么算出来的",
       "date": "2026-10-09",
       "tags": [
         "EOF",
         "动画"
       ],
-      "summary": "30 秒看懂 EOF：从「海温场每一格都在变」，到拆成空间型 × 时间系数，再到第一模态就是厄尔尼诺。",
+      "summary": "18 秒简介：海温场每一格都在变，把它拆成「空间型 × 时间系数」，第一模态就是厄尔尼诺。",
       "path": "content/videos/eof-explained.mp4",
       "cover": "content/videos/eof-explained.jpg",
       "pin": 2
