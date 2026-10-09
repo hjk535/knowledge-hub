@@ -300,7 +300,9 @@ async function main() {
     const remoteIndex = await rawFile(owner, 'index.html');
     if (remoteIndex.indexOf('kb-starter') === -1) {
       keepUserIndex = true;
-      console.log('    · 线上 index.html 是你自己的主页，本次不覆盖');
+      console.log(args.forceIndex
+        ? '    ! 线上 index.html 是你自己的主页，但 --force-index 指定了强制覆盖'
+        : '    · 线上 index.html 是你自己的主页，本次不覆盖');
     }
   } catch (e) {
     // 读不到（例如线上还没有 index.html）就按「不存在」处理，正常上传
