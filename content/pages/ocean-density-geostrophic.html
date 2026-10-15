@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>从海水密度到地转流速｜海洋物理知识分享</title>
+<style>
+:root{--ink:#172b3a;--muted:#5b7080;--blue:#1479a8;--deep:#075985;--cyan:#dff4fb;--green:#dff5e8;--gold:#fff1c9;--purple:#eee7ff;--line:#d8e3ea;--paper:#f5f9fc;--white:#fff}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.75}
+header{background:linear-gradient(135deg,#073b5b,#0c789b);color:white;padding:54px 22px 44px}
+.wrap{max-width:1000px;margin:auto}.eyebrow{letter-spacing:.12em;text-transform:uppercase;font-size:.78rem;opacity:.85}
+h1{font-size:clamp(2rem,5vw,3.3rem);line-height:1.2;margin:.5rem 0 1rem}header p{max-width:760px;font-size:1.08rem;color:#e6f7ff}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}.pill{border:1px solid #ffffff66;border-radius:99px;padding:4px 12px;font-size:.86rem}
+main{max-width:1000px;margin:0 auto;padding:24px 18px 70px}.section{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:clamp(20px,4vw,34px);margin:20px 0;box-shadow:0 8px 24px #193b5010}
+h2{font-size:1.55rem;margin:0 0 12px}h3{font-size:1.08rem;margin:0 0 8px}p{margin:.55rem 0}.lead{font-size:1.08rem;color:#345164}.small{font-size:.9rem;color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}.step{padding:15px 12px;border-radius:14px;text-align:center;background:var(--cyan);position:relative}.step:nth-child(2){background:var(--green)}.step:nth-child(3){background:var(--gold)}.step:nth-child(4){background:var(--purple)}.step b{display:block;margin-bottom:4px}.step span{font-size:.88rem}
+figure{margin:18px 0 8px}svg{max-width:100%;height:auto;display:block;margin:auto}.caption{font-size:.88rem;color:var(--muted);text-align:center;margin-top:8px}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px}.note{padding:16px;border-left:4px solid var(--blue);background:#eff8fc;border-radius:8px;margin:14px 0}.warn{padding:15px;border-left:4px solid #d97706;background:#fff8e8;border-radius:8px;margin:14px 0}
+.formula{background:#f4f7fa;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;font-size:1.15rem;overflow-x:auto;margin:12px 0}.term{border-bottom:1px dashed var(--blue);cursor:help;font-weight:650}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 15px;background:var(--deep);color:white}button.secondary{background:#e8f1f6;color:var(--ink);border:1px solid var(--line)}button:focus,input:focus{outline:3px solid #7dd3fc;outline-offset:2px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.controls label{font-weight:600}.controls input[type=range]{width:min(360px,100%)}.result{background:#eef8ff;padding:14px;border-radius:12px;margin-top:12px}
+.quiz{border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}.quiz label{display:block;padding:7px 8px;border-radius:8px;cursor:pointer}.quiz label:hover{background:#f1f7fa}.feedback{font-weight:650;margin-top:8px;min-height:1.5em}
+details{border:1px solid var(--line);border-radius:12px;padding:12px 15px;margin:10px 0}summary{cursor:pointer;font-weight:650}
+footer{text-align:center;color:var(--muted);padding:20px;font-size:.9rem}
+@media(max-width:700px){.flow{grid-template-columns:1fr 1fr}.twocol{grid-template-columns:1fr}.section{border-radius:15px}header{padding-top:38px}}
+@media(max-width:420px){.flow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="eyebrow">OCEAN PHYSICS · 互动知识分享</div>
+    <h1>从海水密度到地转流速</h1>
+    <p>墨西哥湾流告诉我们：海水内部看不见的密度差异，如何通过压力场与地转平衡，转化为海面坡度和海流？跟着四张示意图，走完这条物理推理链。</p>
+    <div class="pills"><span class="pill">约 3 分钟阅读</span><span class="pill">4 个核心概念</span><span class="pill">可互动小测</span></div>
+  </div>
+</header>
+<main>
+<section class="section">
+<h2>先看全貌：四步推理</h2>
+<p class="lead">不要把密度、动力高度、海面高度和流速当成同一个量。它们之间有关联，但每一步都需要明确的物理关系与参考条件。</p>
+<div class="flow">
+ <div class="step"><b>① 密度结构</b><span>等密度面倾斜</span></div>
+ <div class="step"><b>② 动力高度</b><span>比容异常垂向积分</span></div>
+ <div class="step"><b>③ 压力梯度</b><span>联系海面坡度</span></div>
+ <div class="step"><b>④ 地转流速</b><span>压力梯度与科氏力平衡</span></div>
+</div>
+<div class="note"><b>本页核心问题：</b>我们怎样从海水的密度剖面，推导出海面倾斜和地转流速？答案不是“一看密度就知道流速”，而是沿着上面的链条逐步推导。</div>
+</section>
+
+<section class="section">
+<h2>① 密度剖面：等密度线为什么会倾斜？</h2>
+<p>原图 (a) 的横轴是水平距离，纵轴是深度，曲线标出不同的位密度。等密度线在上层明显倾斜，说明不同位置的水柱结构并不相同。密度取决于温度、盐度和压力；位密度则是把海水密度换算到统一参考压力后，便于比较水团。</p>
+<figure>
+<svg viewBox="0 0 720 290" role="img" aria-label="简化的海洋密度剖面，等密度线在上层倾斜">
+<defs><linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f9b7a7"/><stop offset=".42" stop-color="#b7e8d1"/><stop offset="1" stop-color="#42b883"/></linearGradient></defs>
+<rect x="90" y="35" width="540" height="205" rx="4" fill="url(#ocean)"/>
+<path d="M90 55 C210 68 250 62 350 48 S520 42 630 42 M90 78 C200 95 260 85 360 68 S520 60 630 58 M90 102 C190 120 270 108 360 88 S520 78 630 74 M90 130 C180 145 260 135 360 115 S520 100 630 94 M90 165 C180 175 260 172 360 150 S520 135 630 126 M90 205 C180 207 260 207 360 194 S520 175 630 168" fill="none" stroke="#24566b" stroke-width="2"/>
+<path d="M90 35V240H630" fill="none" stroke="#294b5c" stroke-width="2"/>
+<g fill="#17394b" font-size="15"><text x="20" y="43">海面</text><text x="26" y="243">深层</text><text x="270" y="275">水平距离 →</text><text x="100" y="58">较低密度</text><text x="100" y="225">较高密度</text><text x="480" y="20">示意剖面（非原始观测数据）</text></g>
+<g stroke="#294b5c" stroke-width="1"><path d="M90 85H80 M90 140H80 M90 195H80"/></g>
+</svg>
+<figcaption class="caption">示意图：上层等密度线倾斜，表示水团结构随水平位置改变。</figcaption>
+</figure>
+<p><b>这一步能得出什么？</b>密度结构影响水柱的重量分布和内部压力场。但只看这张密度图，还不能直接读出海面高度或流速。</p>
+</section>
+
+<section class="section">
+<h2>② 比容异常 → 动力高度：为什么需要积分？</h2>
+<div class="twocol">
+<div>
+<h3>两个重要概念</h3>
+<p><span class="term" title="密度的倒数">比容</span>是单位质量海水所占的体积：</p>
+<div class="formula">α = 1 / ρ</div>
+<p><span class="term" title="相对于规定参考状态的比容差">比容异常</span> δ，表示比容相对于参考状态的偏差。</p>
+<p><span class="term" title="由比容异常垂向积分得到的相对动力量">动力高度</span>，反映水柱密度结构所对应的相对动力势差。</p>
+</div>
+<div>
+<figure>
+<svg viewBox="0 0 330 230" role="img" aria-label="A和B两站比容异常剖面示意">
+<path d="M45 20V190H300" fill="none" stroke="#456274" stroke-width="1.5"/>
+<path d="M45 20 C95 25 120 42 130 65 S140 115 142 190" fill="none" stroke="#d94841" stroke-width="3"/>
+<path d="M45 20 C150 24 170 40 185 65 S192 120 194 190" fill="none" stroke="#2563eb" stroke-width="3"/>
+<g fill="#334b5c" font-size="13"><text x="7" y="25">海面</text><text x="2" y="194">参考深度</text><text x="95" y="215">比容异常 →</text><text x="150" y="48" fill="#d94841">A</text><text x="204" y="48" fill="#2563eb">B</text></g>
+</svg>
+<figcaption class="caption">概念示意：两站剖面的差异要沿垂向累计，不能只比较一个点。</figcaption>
+</figure>
+</div>
+</div>
+<div class="formula">动力高度差 ∝ ∫（比容异常差） dp</div>
+<p>这里沿压力坐标积分到共同参考压力。图中的 A、B 两条剖面经过积分后，才得到动力高度的比较结果。</p>
+<div class="warn"><b>常见误区：</b>“A 某个深度的比容较小，所以 A 的海面动力高度一定较低”——这个推理不完整。真正决定结果的是整个积分区间内的比容异常差及其积分符号。</div>
+</section>
+
+<section class="section">
+<h2>③ 海面为什么倾斜？试着改变条件</h2>
+<p>在海面附近，海面高度差会对应水平压力梯度。对于北半球、近似地转平衡的情形，若海流向东，则南侧海面较高、北侧较低。原图中 B 在南、A 在北，因此对应海面由 B 向 A 降低。</p>
+<figure>
+<svg viewBox="0 0 700 220" role="img" aria-label="北半球东向地转流对应南侧海面高、北侧海面低的示意图">
+<path d="M70 65 L620 145 L620 180 L70 180 Z" fill="#63b3df" opacity=".22"/>
+<path d="M70 65 L620 145" fill="none" stroke="#1479a8" stroke-width="4"/>
+<path d="M190 38H440" fill="none" stroke="#d94841" stroke-width="3"/><path d="M428 29L440 38L428 47" fill="none" stroke="#d94841" stroke-width="3"/>
+<g fill="#17394b" font-size="17"><text x="65" y="42">B：南侧，海面较高</text><text x="430" y="125">A：北侧，海面较低</text><text x="220" y="27" fill="#d94841">东向地转流</text><text x="70" y="205">南</text><text x="610" y="205">北</text></g>
+</svg>
+<figcaption class="caption">方向示意图，坡度并非真实比例。地转平衡下，北半球东向流对应海面向北降低。</figcaption>
+</figure>
+<div class="controls">
+<label for="hemi">选择半球：</label>
+<select id="hemi"><option value="north">北半球</option><option value="south">南半球</option></select>
+<label for="dir">海流方向：</label>
+<select id="dir"><option value="east">向东</option><option value="west">向西</option></select>
+</div>
+<div class="result" id="directionResult" aria-live="polite">北半球 + 东向地转流：南侧压力较高，海面向北降低。</div>
+<p class="small">互动提示：以上判断假设流动处于地转平衡，并讨论同一深度的水平压力梯度。若存在显著摩擦、惯性或其他力，不能只凭流向作同样推断。</p>
+</section>
+
+<section class="section">
+<h2>④ 从压力梯度到地转流速</h2>
+<p>地转平衡是指水平压力梯度力与科里奥利力相平衡。它解释了为什么海面坡度与海流方向有关，也让我们可以用动力高度的水平梯度估算地转流速。</p>
+<div class="formula">u<sub>g</sub> = − (g / f) · ∂D / ∂y</div>
+<p>这里，<b>u<sub>g</sub></b> 是东西向地转流速，<b>g</b> 是重力加速度，<b>f</b> 是科里奥利参数，<b>D</b> 是以米表示的动力高度，<b>y</b> 是向北的距离。这个表达式采用标准动力高度定义和北向坐标。</p>
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="地转流速随深度变化的示意曲线">
+<path d="M95 20V210H620" fill="none" stroke="#456274" stroke-width="1.5"/>
+<path d="M570 25 C555 48 520 64 450 83 S270 103 230 125 S215 165 215 205" fill="none" stroke="#1479a8" stroke-width="4"/>
+<g fill="#334b5c" font-size="15"><text x="25" y="25">海面</text><text x="18" y="210">深层</text><text x="300" y="240">地转流速 →</text><text x="425" y="53">上层流速较大</text><text x="270" y="185">深层逐渐减弱</text></g>
+<path d="M400 58L445 68" stroke="#d94841" stroke-width="2"/><path d="M437 61L445 68L435 71" fill="none" stroke="#d94841" stroke-width="2"/>
+</svg>
+<figcaption class="caption">示意流速剖面：上层流速较大，随深度增加而减小。实际形态由观测和参考条件决定。</figcaption>
+</figure>
+<div class="warn"><b>参考深度：</b>原图假设约 3000 m 处流速为零。因此得到的是相对于该参考深度的地转流速；这不代表真实海洋深层一定静止。</div>
+</section>
+
+<section class="section">
+<h2>检查一下：你真的理解了吗？</h2>
+<div class="quiz" data-answer="b">
+<p><b>1. 为什么不能只凭某一个深度的比容判断动力高度？</b></p>
+<label><input type="radio" name="q1" value="a"> A. 因为比容与密度完全无关</label>
+<label><input type="radio" name="q1" value="b"> B. 因为动力高度取决于整个积分区间的比容异常</label>
+<label><input type="radio" name="q1" value="c"> C. 因为动力高度只由海水颜色决定</label>
+<div class="feedback"></div>
+</div>
+<div class="quiz" data-answer="a">
+<p><b>2. 在北半球，东向地转流对应怎样的海面坡度？</b></p>
+<label><input type="radio" name="q2" value="a"> A. 南侧较高，北侧较低</label>
+<label><input type="radio" name="q2" value="b"> B. 南侧较低，北侧较高</label>
+<label><input type="radio" name="q2" value="c"> C. 海面一定水平</label>
+<div class="feedback"></div>
+</div>
+<div class="quiz" data-answer="c">
+<p><b>3. “垂向速度切变最大”是什么意思？</b></p>
+<label><input type="radio" name="q3" value="a"> A. 该处一定是海流速度最大的位置</label>
+<label><input type="radio" name="q3" value="b"> B. 该处位于海平面上方</label>
+<label><input type="radio" name="q3" value="c"> C. 流速随深度变化最快</label>
+<div class="feedback"></div>
+</div>
+<button id="checkQuiz">查看答案</button> <button class="secondary" id="resetQuiz">重做</button>
+</section>
+
+<section class="section">
+<h2>关键概念速查</h2>
+<details><summary>位密度（potential density）</summary><p>将海水密度换算到统一参考压力后得到的密度，用于比较不同水团的密度结构。</p></details>
+<details><summary>比容异常（specific volume anomaly）</summary><p>实际比容相对于参考状态的差值，是计算相对动力高度的重要量。</p></details>
+<details><summary>动力高度（dynamic height）</summary><p>比容异常沿压力方向积分得到的相对动力量。其差异与地转流速计算有关，但不是实际海面高度的同义词。</p></details>
+<details><summary>地转平衡（geostrophic balance）</summary><p>大尺度海洋运动中，水平压力梯度力与科里奥利力近似平衡。该近似不适用于所有时间、空间尺度和所有流动情形。</p></details>
+<details><summary>垂向速度切变（vertical shear）</summary><p>流速随垂向坐标的变化率。切变大表示速度随深度变化快，并不等于该处速度本身最大，也不是“海面上方”的意思。</p></details>
+</section>
+
+<section class="section">
+<h2>一句话带走</h2>
+<p class="lead"><b>密度结构影响压力场；比容异常的垂向积分给出动力高度；动力高度的水平梯度结合地转平衡，帮助我们推算地转流速。</b></p>
+<p class="small">阅读原图时，记得同时关注测站位置、积分参考深度、单位和零流速参考假设。真实海洋计算还需要一致的海水状态方程、压力坐标和参考流速约束。</p>
+</section>
+</main>
+<footer>海洋物理知识分享 · 概念示意图为教学绘制，非原始观测数据</footer>
+<script>
+const hemi=document.getElementById('hemi'),dir=document.getElementById('dir'),out=document.getElementById('directionResult');
+function updateDirection(){
+ const north=hemi.value==='north', east=dir.value==='east';
+ const dpNorth=(north===east); // north+east or south+west => pressure decreases northward
+ const high=dpNorth?'南侧':'北侧', low=dpNorth?'北侧':'南侧';
+ const surface=dpNorth?'海面向北降低':'海面向北升高';
+ out.textContent=(north?'北半球':'南半球')+' + '+(east?'东向':'西向')+'地转流：'+high+'压力较高，'+low+'压力较低；'+surface+'。';
+}
+hemi.addEventListener('change',updateDirection);dir.addEventListener('change',updateDirection);
+document.getElementById('checkQuiz').addEventListener('click',()=>{
+ document.querySelectorAll('.quiz').forEach((q,i)=>{
+  const selected=q.querySelector('input:checked'), fb=q.querySelector('.feedback');
+  if(!selected){fb.textContent='请选择一个答案。';fb.style.color='#9a6700';}
+  else if(selected.value===q.dataset.answer){fb.textContent='回答正确！';fb.style.color='#147443';}
+  else{fb.textContent='还不完全正确，再读一遍对应概念后试试。';fb.style.color='#b42318';}
+ });
+});
+document.getElementById('resetQuiz').addEventListener('click',()=>{
+ document.querySelectorAll('.quiz input').forEach(i=>i.checked=false);
+ document.querySelectorAll('.feedback').forEach(f=>f.textContent='');
+});
+</script>
+</body>
+</html>

@@ -1,9 +1,9 @@
 {
   "generated": "2026-10-09T09:09:53.747Z",
   "site": {
-    "title": "hjkd 物理海洋知识库",
-    "desc": "物理海洋观测与知识整理。EOF 分解、海表热收支。",
-    "coords": "GRAND LINE OBSERVATORY · 20°S–20°N · 120°E–80°W",
+    "title": "HJK 知识港湾",
+    "desc": "探索海洋，也探索知识。沿着数据、问题与互动实验，发现海洋的另一面。",
+    "coords": "OCEAN SCIENCE · DATA · DISCOVERY",
     "tickets": [
       {
         "no": 1,
@@ -20,7 +20,9 @@
     ],
     "featured": [
       "eof",
-      "eof-explained"
+      "eof-explained",
+      "九题分享",
+      "ocean-density-geostrophic"
     ],
     "removed": [
       "content/videos/eof-explained.mp4",
@@ -37,7 +39,7 @@
       "title": "EOF 主成分分析",
       "date": "2026-10-09",
       "tags": [],
-      "summary": "",
+      "summary": "用经验正交函数（EOF）拆解海洋场的主要空间模态与时间变化，连接数据分析和物理解释。",
       "path": "content/pages/eof.html",
       "pin": 1
     },
@@ -63,9 +65,23 @@
       "tags": [
         "问答知识分享"
       ],
-      "summary": "",
+      "summary": "以九个问题整理海洋科学与学习中的关键概念，适合快速浏览与复习。",
       "path": "content/九题分享.md",
       "cover": "content/images/answer_02_mixed_layer-20261008112029.jpg"
+    },
+    {
+      "id": "ocean-density-geostrophic",
+      "type": "page",
+      "title": "从海水密度到地转流速",
+      "date": "2026-10-15",
+      "tags": [
+        "海洋物理",
+        "地转流",
+        "互动实验"
+      ],
+      "summary": "从密度结构、比容异常与动力高度，一步步理解海面坡度如何联系到地转流速；附互动方向判断与小测。",
+      "path": "content/pages/ocean-density-geostrophic.html",
+      "pin": 3
     }
   ]
 }
