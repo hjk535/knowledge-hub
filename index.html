@@ -22,7 +22,7 @@
 
 <header id="topbar">
   <div class="bar">
-    <a class="logo" id="site-title" href="#/"></a>
+    <a class="logo" id="site-title" href="#/">HJK 知识港湾</a>
     <div class="bar-right">
       <button class="icon-btn" id="btn-search" aria-label="搜索">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -46,6 +46,54 @@
 </button>
 
 <div id="toast" role="status" aria-live="polite"></div>
+
+<!-- 文字版目录：真实可读的静态正文，供检索/无脚本访问（不依赖 app.js 渲染） -->
+<section class="static-index" id="static-index" aria-labelledby="si-title">
+  <div class="si-wrap">
+    <h2 id="si-title">课程笔记目录 · 文字版</h2>
+    <p class="si-lead">
+      HJK 知识港湾收录物理海洋课程的学习笔记与知识整理，按课次编排，共 4 讲（第 1–4 讲 / Week 1–3）。
+      每讲配课堂笔记、知识点梳理与出门票，文末附复习入口。以下为静态目录，不依赖脚本即可完整阅读。
+    </p>
+
+    <div class="si-cols">
+      <div class="si-col">
+        <h3>课次 · 第 1–4 讲</h3>
+        <ul class="si-list">
+          <li><a href="#/i/eof">第 1 讲：EOF 主成分分析</a><span class="si-meta">课堂笔记 · 知识点</span></li>
+          <li><a href="#/i/eof-explained">第 2 讲：EOF 是怎么算出来的</a><span class="si-meta">视频 · 18 秒</span></li>
+          <li><a href="#/i/%E4%B9%9D%E9%A2%98%E5%88%86%E4%BA%AB">第 3 讲：九题分享</a><span class="si-meta">课堂笔记 · 问答</span></li>
+          <li><a href="#/i/ocean-density-geostrophic">第 4 讲：从海水密度到地转流速</a><span class="si-meta">互动实验 · 复习</span></li>
+        </ul>
+      </div>
+
+      <div class="si-col">
+        <h3>知识点 · 复习 · 图谱</h3>
+        <ul class="si-list">
+          <li>EOF 分解：空间模态 × 时间系数</li>
+          <li>密度剖面与等密度线倾斜</li>
+          <li>比容异常 → 动力高度（积分）</li>
+          <li>海面坡度与压力梯度力</li>
+          <li>地转平衡与地转流速</li>
+          <li>海表热收支 · 混合层</li>
+        </ul>
+        <p class="si-note">知识图谱：EOF 分解 → 模态解释 → 密度结构 → 动力高度 → 地转流速。</p>
+      </div>
+
+      <div class="si-col">
+        <h3>出门票 · 复习入口</h3>
+        <ul class="si-list">
+          <li>出门票 1</li>
+          <li>出门票 2</li>
+          <li>出门票 3</li>
+        </ul>
+        <p class="si-note">复习建议：先看「关键概念速查」，再做页面内的互动小测。</p>
+      </div>
+    </div>
+
+    <p class="si-foot">4 讲 · 6 个知识点 · 3 张出门票 · 最近更新 2026-10-15</p>
+  </div>
+</section>
 
 <script defer src="assets/vendor/marked.min.js"></script>
 <script defer src="assets/vendor/purify.min.js"></script>
