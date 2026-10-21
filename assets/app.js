@@ -742,12 +742,8 @@
     var head = '<div class="sec-head"><h2>出门票</h2><span class="line"></span>' +
       '<span class="more">' + (list.length ? list.length + ' 张' : '待补充') + '</span></div>';
 
-    if (!list.length) {
-      return '<section class="tickets" id="tickets">' + head +
-        '<p class="tickets-note">这里还没有内容。' +
-        (isAuthor() ? '在 data/library.json 的 site.tickets 里粘贴你的出门票即可。' : '') +
-        '</p></section>';
-    }
+    // 没有数据就整块不渲染（出门票已改为页面末尾的静态板块）
+    if (!list.length) return '';
 
     return '<section class="tickets" id="tickets">' + head +
       '<div class="ticket-grid">' + list.map(function (t, i) {

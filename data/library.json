@@ -4,20 +4,7 @@
     "title": "HJK 知识港湾",
     "desc": "探索海洋，也探索知识。沿着数据、问题与互动实验，发现海洋的另一面。",
     "coords": "OCEAN SCIENCE · DATA · DISCOVERY",
-    "tickets": [
-      {
-        "no": 1,
-        "title": "出门票 1"
-      },
-      {
-        "no": 2,
-        "title": "出门票 2"
-      },
-      {
-        "no": 3,
-        "title": "出门票 3"
-      }
-    ],
+    "tickets": [],
     "featured": [
       "eof",
       "eof-explained",
