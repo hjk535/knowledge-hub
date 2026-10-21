@@ -323,7 +323,63 @@
     </div>
 
 
-    <!-- ==================== C · 出门票 ==================== -->
+    <!-- ==================== C · 故事会 ==================== -->
+    <div class="c-sub" id="story">
+      <h3 class="c-sub-title">故事会 · 海洋里的细丝：filaments</h3>
+      <p class="c-note">
+        两分钟的视频故事：一个人、只讲物理海洋学、mp4 交「学在浙大」。下面是视频，和三段式的文字版。
+      </p>
+
+      <div class="video-wrap">
+        <video controls preload="metadata" poster="content/images/weekly/filaments-sst.png">
+          <source src="content/videos/filaments.mp4" type="video/mp4">
+          你的浏览器不支持视频播放，<a href="content/videos/filaments.mp4">点这里直接下载</a>。
+        </video>
+        <p class="video-meta">1′48″ · 1280×720 · 中文配音（AI 合成，微软晓晓）</p>
+      </div>
+
+      <div class="story">
+
+        <article class="story-part">
+          <div class="story-tag">开头 · 现象与疑问</div>
+          <p>海面看上去是一整片，可一旦放大，到处都是细长的丝。它们不是画上去的，是真实存在的结构。海洋学家把这种又细又长的水带叫作 <strong>filaments</strong>，丝状结构——往往只有几公里到几十公里宽，却能伸出去几百公里。</p>
+        </article>
+
+        <article class="story-part">
+          <div class="story-tag">中间 · 我怎么找答案</div>
+          <ul>
+            <li>先找一张看得见锋面的图：取 NASA MUR SST（1 km 分辨率）湾流区某一天的海表温度，蓝色是冷水、红色是暖水，中间那条颜色骤变的边界就是锋面。</li>
+            <li>再自己算梯度：把每个格点与相邻格点相减、取模，得到水平温度梯度场——也就是「温度变化最快的地方」。</li>
+            <li>把梯度最大的一小部分像素标成白色，叠回原图：高梯度带一条一条，正好压在肉眼看到的丝上。</li>
+            <li>最后想机制：流场里同时有拉伸和挤压，一小团水落进去就会被越拉越长、越拉越细，所以丝总是顺着锋面走。</li>
+          </ul>
+        </article>
+
+        <article class="story-part">
+          <div class="story-tag">结尾 · 结论与还想知道的</div>
+          <p>细丝不是噪声。它是海洋把热量、盐分和营养快速运出去的通道——卫星上看到的一根丝，可能正把某一海区的性质搬去几百公里之外。</p>
+          <p>我还在想一个问题：一根丝能撑多久？它最后是被周围的水混合掉，还是又被拉得更长？</p>
+        </article>
+
+        <article class="story-part">
+          <div class="story-tag">证据 · 可以自己验证</div>
+          <figure class="fig">
+            <img src="content/images/weekly/filaments-sst.png" alt="湾流区海表温度" loading="lazy">
+            <figcaption>NASA MUR SST · 湾流区海表温度（冷水蓝、暖水红，中间为锋面）</figcaption>
+          </figure>
+          <figure class="fig">
+            <img src="content/images/weekly/filaments-gradient.png" alt="自己计算的海温梯度" loading="lazy">
+            <figcaption>我自己算的水平温度梯度：白色是梯度最强的那一小部分像素</figcaption>
+          </figure>
+        </article>
+
+      </div>
+      <p class="story-note">
+        数据：NASA MUR SST（JPL / PO.DAAC），经 NOAA CoastWatch ERDDAP 获取；梯度计算与出图用 Python（numpy + Pillow）完成。
+      </p>
+    </div>
+
+    <!-- ==================== D · 出门票 ==================== -->
     <div class="c-sub" id="tickets">
       <h3 class="c-sub-title">出门票 · 八周记录</h3>
       <p class="c-note">

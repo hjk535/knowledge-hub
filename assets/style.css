@@ -1105,6 +1105,34 @@ table.map td { color: var(--text-2); }
 .cmp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .cmp h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .1em; color: var(--muted); }
 
+/* 故事会视频 */
+.video-wrap { margin: 16px 0 22px; }
+.video-wrap video {
+  display: block; width: 100%; height: auto;
+  background: #0c1622; border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.video-meta { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+
+/* 故事会 */
+.story { display: grid; gap: 14px; margin-top: 16px; }
+.story-part {
+  padding: 16px 18px; background: var(--surface);
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+.story-tag {
+  display: inline-block; margin-bottom: 10px; padding: 2px 10px;
+  font-size: 11px; letter-spacing: .08em; color: var(--accent);
+  border: 1px solid var(--border-2); border-radius: 999px;
+}
+.story-part p { margin: 0; font-size: 14px; line-height: 1.95; color: var(--text-2); }
+.story-part p + p { margin-top: 10px; }
+.story-part ul { margin: 0; padding-left: 18px; }
+.story-part li { font-size: 14px; line-height: 1.9; color: var(--text-2); }
+.story-part li + li { margin-top: 5px; }
+.story-part a { color: var(--accent); }
+.story-note { margin: 12px 0 0; font-size: 12px; line-height: 1.8; color: var(--muted); }
+
 /* 出门票（放在页面最末尾） */
 .tk-list { display: grid; gap: 12px; margin-top: 16px; }
 .tk {
