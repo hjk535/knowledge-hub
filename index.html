@@ -83,59 +83,62 @@
         </div>
       </details>
 
-      <details class="wk" id="w2">
-        <summary><span class="wk-no">第 2 周</span><span class="wk-t">位温、位能与盐指（工具：Trae）</span></summary>
+      <details class="wk" id="w2" open>
+        <summary><span class="wk-no">第 2 周</span><span class="wk-t">九题分享 · 混合层、温盐结构与热收支</span></summary>
         <div class="wk-body">
           <div class="blk"><h3>我学到了什么</h3>
             <ul>
-              <li>位温（Potential temperature）：把水样沿绝热过程移到海面后的温度。去掉绝热压缩增温的影响之后，不同深度的水才能直接比较冷暖。</li>
-              <li>位能、盐指（salt fingering）是连着的一组概念：暖而咸的水盖在冷而淡的水上时，热扩散比盐扩散快，会出现细长的盐指状对流。</li>
-              <li>工具：给 Trae 模板和数据，它能自己画图，省掉手写绘图代码的功夫。</li>
+              <li>老师课件上的九个问题，主线是混合层和温盐结构。混合层深度不是固定值：风混合典型 20–100 m，副极地冬季可达 80–120 m；靠冷却驱动的深层对流能到几百米。</li>
+              <li>副热带北太平洋是三层结构：混合层（20–40 m，25–29 ℃）→ 主温跃层（100–800 m）→ 深层冷水；盐度在 150–200 m 出现次表层最大值 34.8–35.2。</li>
+              <li>表层盐度由蒸发减降水（E−P）控制：副热带 E&gt;P 形成盐度极大值，ITCZ 一带 P&gt;E 形成低盐带。</li>
+              <li>位温（Potential temperature）：去掉绝热压缩影响后的温度，不同深度的水才能比较冷暖；位密同理，必须注明参考压力。</li>
+              <li>混合层热收支四部分：表面热通量（净短波 − 长波 + 感热 + 潜热）、平流、卷入 / 卷出、储存项。</li>
             </ul>
+            <p class="week-src">问题来自老师课程 PPT 的九个问题，答案整理见 <a href="#/i/%E4%B9%9D%E9%A2%98%E5%88%86%E4%BA%AB">九题分享</a>。</p>
           </div>
           <figure class="fig">
             <img src="content/images/weekly/w2-fig3-1.png" alt="教材图 3.1" loading="lazy">
             <figcaption>教材 图 3.1 · 温盐图，等密度线 0–30</figcaption>
           </figure>
           <figure class="fig">
-            <img src="content/images/weekly/w2-fig3-5.png" alt="教材图 3.5，第 44 页" loading="lazy">
-            <figcaption>教材 第 44 页 · 图 3.5 · 位密随位温与盐度的分布（参考 0 / 4000 dbar）</figcaption>
-          </figure>
-          <div class="blk"><h3>当时没懂 → 后来想通</h3>
-            <div class="slot">这一周真正卡住的点是什么？后来在哪一步想通的？（换成你自己的话）</div></div>
-          <p class="week-map">对应教材：《物理海洋学》（第六版）第 3 章 · 图 3.1、图 3.5（P.44）</p>
-        </div>
-      </details>
-
-      <details class="wk" id="w3" open>
-        <summary><span class="wk-no">第 3 周</span><span class="wk-t">温跃层与 EOF 动画</span></summary>
-        <div class="wk-body">
-          <div class="blk"><h3>我学到了什么</h3>
-            <ul>
-              <li>温跃层（Thermocline）：温度随深度快速下降的那一层水。</li>
-              <li>把自己的网站部署到 GitHub，拿到了对外可访问的链接。</li>
-              <li>用 3B1B 的方式做了 EOF 小动画：把「空间型 × 时间系数」拆开讲，动起来比静态图好懂。</li>
-            </ul>
-          </div>
-          <figure class="fig">
             <img src="content/images/weekly/w3-fig5-5.png" alt="教材图 5.5" loading="lazy">
             <figcaption>教材 图 5.5 · 入射短波辐射的分配（100 单位）</figcaption>
           </figure>
           <div class="blk"><h3>当时没懂 → 后来想通</h3>
             <div class="slot">这一周真正卡住的点是什么？后来在哪一步想通的？（换成你自己的话）</div></div>
-          <p class="week-map">对应教材：第 5 章 · 图 5.5</p>
+          <p class="week-map">对应教材：第 3 章 · 图 3.1　/　第 5 章 · 图 5.5</p>
+        </div>
+      </details>
+
+      <details class="wk" id="w3" open>
+        <summary><span class="wk-no">第 3 周</span><span class="wk-t">EOF 主成分分析</span></summary>
+        <div class="wk-body">
+          <div class="blk"><h3>我学到了什么</h3>
+            <ul>
+              <li>海温场里每个格点都在变，EOF 把变化拆成「空间型 × 时间系数」两部分。</li>
+              <li>第一模态对应厄尔尼诺型的空间分布，时间系数反映它什么时候强、什么时候弱；各模态互不相关，按方差贡献排序。</li>
+              <li>用 3B1B 的方式做了 18 秒小动画：先讲清「为什么能这样拆」，再讲「怎么算」。</li>
+              <li>顺手把网站部署到了 GitHub，拿到了对外可访问的链接。</li>
+            </ul>
+            <p class="week-src">相关内容：<a href="#/i/eof">EOF 主成分分析</a>　·　<a href="#/i/eof-explained">EOF 是怎么算出来的（18 秒）</a></p>
+          </div>
+          <div class="blk"><h3>当时没懂 → 后来想通</h3>
+            <div class="slot">这一周真正卡住的点是什么？后来在哪一步想通的？（换成你自己的话）</div></div>
+          <p class="week-map">对应教材：第 6 章 · 数据分析方法</p>
         </div>
       </details>
 
       <details class="wk" id="w4" open>
-        <summary><span class="wk-no">第 4 周</span><span class="wk-t">惯性流、地转偏向力与埃克曼深度</span></summary>
+        <summary><span class="wk-no">第 4 周</span><span class="wk-t">从海水密度到地转流速</span></summary>
         <div class="wk-body">
           <div class="blk"><h3>我学到了什么</h3>
             <ul>
-              <li>惯性流：风停之后，水质点在科氏力作用下继续做圆周运动。</li>
-              <li>地转偏向力（科氏力）：随纬度变化，决定流动往哪边偏。</li>
+              <li>惯性流：风停之后，水质点在科氏力作用下继续做圆周运动；地转偏向力随纬度变化，决定往哪边偏。</li>
               <li>埃克曼深度：风应力的影响随深度迅速衰减的特征尺度。</li>
+              <li>从密度到流速是四步：密度剖面 → 等密度线倾斜 → 比容异常与动力高度（要积分）→ 海面坡度与压力梯度 → 地转流速。</li>
+              <li>图 7.11 就是这套流程的一次实测：位密度剖面 → 比容偏差 → 动力高度 → 东向地转速度。</li>
             </ul>
+            <p class="week-src">相关内容：<a href="#/i/ocean-density-geostrophic">从海水密度到地转流速（含互动小测）</a></p>
           </div>
           <figure class="fig">
             <img src="content/images/weekly/w4-fig7-11.png" alt="教材图 7.11" loading="lazy">
@@ -230,9 +233,9 @@
           <thead><tr><th>课次</th><th>课堂主题</th><th>教材章节</th><th>页码</th></tr></thead>
           <tbody>
             <tr><td>第 1 周</td><td class="todo">待补充</td><td class="todo">第 __ 章 第 __ 节</td><td class="todo">P.__–__</td></tr>
-            <tr><td>第 2 周</td><td>位温、位能与盐指</td><td>第 3 章 · 图 3.1 / 图 3.5</td><td>P.44</td></tr>
-            <tr><td>第 3 周</td><td>温跃层与 EOF 动画</td><td>第 5 章 · 图 5.5</td><td>P.__</td></tr>
-            <tr><td>第 4 周</td><td>惯性流、地转偏向力、埃克曼深度</td><td>第 7 章 · 图 7.11</td><td>P.__</td></tr>
+            <tr><td>第 2 周</td><td>九题分享（混合层与热收支）</td><td>第 3 章 · 图 3.1 / 第 5 章 · 图 5.5</td><td>P.44</td></tr>
+            <tr><td>第 3 周</td><td>EOF 主成分分析</td><td>第 6 章 · 数据分析方法</td><td>P.__</td></tr>
+            <tr><td>第 4 周</td><td>从海水密度到地转流速</td><td>第 7 章 · 图 7.11</td><td>P.__</td></tr>
             <tr><td>第 5 周</td><td>Sverdrup 平衡、涡度守恒</td><td>第 7 章 · 图 7.13</td><td>P.__</td></tr>
             <tr><td>第 6 周</td><td class="todo">待补充</td><td class="todo">第 __ 章 第 __ 节</td><td class="todo">P.__–__</td></tr>
             <tr><td>第 7 周</td><td class="todo">待补充</td><td class="todo">第 __ 章 第 __ 节</td><td class="todo">P.__–__</td></tr>
@@ -332,17 +335,17 @@
         </article>
         <article class="tk">
           <div class="tk-head"><span class="tk-no">第 2 周</span></div>
-          <div class="tk-body">位温（去掉了绝热压缩影响后的温度）、位能、盐指；给 Trae 模板和数据，让它自主画图。</div>
+          <div class="tk-body">老师课件上的九个问题：混合层深度、副热带三层温盐结构、蒸发减降水对表层盐度、混合层热收支的四项、北大西洋为什么比北太平洋咸、季节变率、温跃层靠什么维持。</div>
           <p class="tk-link"><span class="todo">呼应：—</span></p>
         </article>
         <article class="tk">
           <div class="tk-head"><span class="tk-no">第 3 周</span></div>
-          <div class="tk-body">温跃层；把网站部署到 GitHub 生成链接；用 3B1B 的方法做 EOF 小动画并上传到网站。</div>
+          <div class="tk-body">温跃层与 EOF：海温场怎么拆成「空间型 × 时间系数」，第一模态为什么是厄尔尼诺；用 3B1B 的方式做成 18 秒动画，并把网站部署到 GitHub。</div>
           <p class="tk-link"><span class="todo">呼应：—</span></p>
         </article>
         <article class="tk">
           <div class="tk-head"><span class="tk-no">第 4 周</span></div>
-          <div class="tk-body">惯性流、地转偏向力、埃克曼深度。</div>
+          <div class="tk-body">从密度到流速的四步推理；惯性流、地转偏向力（科氏力）、埃克曼深度。</div>
           <p class="tk-link">呼应：第 5 周（埃克曼深度 → 埃克曼抽吸）</p>
         </article>
         <article class="tk">
