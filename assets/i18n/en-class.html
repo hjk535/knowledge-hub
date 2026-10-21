@@ -1,0 +1,154 @@
+    <h2 class="c-title" id="class-log">Class · Eight Weeks</h2>
+    <p class="c-lead">
+      Eight weeks, one lesson per week. Each entry records what I learned in that class, what I did not understand at the time,
+      and how I worked it out. Exit tickets are collected in the last section of this page.
+      Click a week to expand — the three finished weeks are open by default.
+    </p>
+
+    <div class="wk-list">
+
+      <details class="wk" id="w1">
+        <summary><span class="wk-no">Week 1</span><span class="wk-t">Learning how to learn: What / Why / How</span></summary>
+        <div class="wk-body">
+          <div class="blk"><h3>What I learned</h3>
+            <ul>
+              <li>A lesson has a skeleton: what it is, why it matters, how to do it.</li>
+              <li>Use tools to buy back time (Metaso AI) — hand off searching and tidying.</li>
+              <li>Pick a topic at a scale that fits your own background: I come from biology, so I chose mesoscale phenomena.</li>
+              <li>Three principles: the 80/20 rule, structured planning, and the Feynman technique (explain it to a layman).</li>
+              <li>My own question: in a warming climate, why does sea-ice extent increase in some years?</li>
+            </ul>
+          </div>
+          <figure class="fig">
+            <img src="content/images/weekly/w1-mindmap.jpeg" alt="Course mind map" loading="lazy">
+            <figcaption>My own mind map of the course outline</figcaption>
+          </figure>
+          <p class="week-map">Textbook: methodology week — no specific chapter</p>
+        </div>
+      </details>
+
+      <details class="wk" id="w2" open>
+        <summary><span class="wk-no">Week 2</span><span class="wk-t">Nine questions: mixed layer, T-S structure and heat budget</span></summary>
+        <div class="wk-body">
+          <div class="blk"><h3>What I learned</h3>
+            <ul>
+              <li>The nine questions from the lecture slides centre on the mixed layer and T-S structure. Mixed-layer depth is not a fixed number: wind mixing typically gives 20–100 m, up to 80–120 m in subpolar winters, while cooling-driven deep convection can reach several hundred metres.</li>
+              <li>The subtropical North Pacific is three-layered: mixed layer (20–40 m, 25–29 ℃) → main thermocline (100–800 m) → near-uniform deep water; salinity peaks at 150–200 m with 34.8–35.2.</li>
+              <li>Surface salinity is set by evaporation minus precipitation (E−P): E&gt;P in the subtropics creates a salinity maximum, while P&gt;E near the ITCZ creates a low-salinity band.</li>
+              <li>Potential temperature: temperature after removing the effect of adiabatic compression, which is what makes water at different depths comparable. Potential density works the same way and must state its reference pressure.</li>
+              <li>Mixed-layer heat budget has four terms: surface heat flux (net shortwave − longwave + sensible + latent), advection, entrainment/detrainment, and the storage term.</li>
+            </ul>
+            <p class="week-src">Questions from the lecture slides; my written answers are in <a href="#/i/%E4%B9%9D%E9%A2%98%E5%88%86%E4%BA%AB">Nine Questions</a>.</p>
+          </div>
+          <figure class="fig">
+            <img src="content/images/weekly/w2-fig3-1.png" alt="Textbook Fig. 3.1" loading="lazy">
+            <figcaption>Textbook Fig. 3.1 · T-S diagram with isopycnals 0–30</figcaption>
+          </figure>
+          <figure class="fig">
+            <img src="content/images/weekly/w3-fig5-5.png" alt="Textbook Fig. 5.5" loading="lazy">
+            <figcaption>Textbook Fig. 5.5 · Where 100 units of incoming shortwave radiation go</figcaption>
+          </figure>
+          <p class="week-map">Textbook: Ch. 3 · Fig. 3.1　/　Ch. 5 · Fig. 5.5</p>
+        </div>
+      </details>
+
+      <details class="wk" id="w3" open>
+        <summary><span class="wk-no">Week 3</span><span class="wk-t">EOF principal component analysis</span></summary>
+        <div class="wk-body">
+          <div class="blk"><h3>What I learned</h3>
+            <ul>
+              <li>Every grid point of an SST field changes with time; EOF splits that variability into a spatial pattern times a time coefficient.</li>
+              <li>Mode 1 maps onto the El Niño pattern, and its time series says when the pattern is strong or weak; modes are mutually uncorrelated and ordered by explained variance.</li>
+              <li>I built an 18-second animation in the 3Blue1Brown style: first why the field can be split this way, then how it is computed.</li>
+              <li>Along the way I deployed this site to GitHub and got a public link.</li>
+            </ul>
+            <p class="week-src">Related: <a href="#/i/eof">EOF principal component analysis</a>　·　<a href="#/i/eof-explained">How EOF is computed (18 s)</a></p>
+          </div>
+          <div class="blk"><h3>What I did not get → how I got it</h3>
+            <div class="qa">
+              <p class="qa-q"><span class="qa-tag">At first</span>EOF hands me a set of spatial patterns and a set of time coefficients. The patterns I can look at, but the time coefficient is just a curve going up and down — what does it actually say? Is it a temperature? What do positive and negative mean?</p>
+              <p class="qa-a"><span class="qa-tag">Later</span>The time coefficient is not another physical quantity; it is how much of that pattern is present at each moment. Subtract the mean field, project the anomaly onto the first spatial pattern, and you get the coefficient for that moment: positive means the SST pattern resembles the warm phase (El Niño-like), negative means the opposite phase (La Niña-like), and the larger the magnitude the closer the match. Its units match the original field (dimensionless after standardisation), so only pattern × coefficient gives the field back.</p>
+            </div>
+          </div>
+          <p class="week-map">Textbook: Ch. 6 · data analysis</p>
+        </div>
+      </details>
+
+      <details class="wk" id="w4" open>
+        <summary><span class="wk-no">Week 4</span><span class="wk-t">From seawater density to geostrophic velocity</span></summary>
+        <div class="wk-body">
+          <div class="blk"><h3>What I learned</h3>
+            <ul>
+              <li>Inertial flow: once the wind stops, a water parcel keeps circling under the Coriolis force, whose strength changes with latitude and sets the direction of deflection.</li>
+              <li>Ekman depth: the scale over which the wind's influence decays with depth.</li>
+              <li>Density to velocity takes four steps: density profile → tilted isopycnals → specific-volume anomaly and dynamic height (integrated) → sloping surface and pressure gradient → geostrophic velocity.</li>
+              <li>Fig. 7.11 is one observed example of exactly this chain: density section → specific-volume anomaly → dynamic height → eastward geostrophic velocity.</li>
+            </ul>
+            <p class="week-src">Related: <a href="#/i/ocean-density-geostrophic">From density to geostrophic velocity (with an interactive quiz)</a></p>
+          </div>
+          <figure class="fig">
+            <img src="content/images/weekly/w4-fig7-11.png" alt="Textbook Fig. 7.11" loading="lazy">
+            <figcaption>Textbook Fig. 7.11 · Geostrophic flow: density section → dynamic height → velocity</figcaption>
+          </figure>
+          <div class="blk"><h3>What I did not get → how I got it</h3>
+            <div class="qa">
+              <p class="qa-q"><span class="qa-tag">At first</span>Why does dynamic height have to be integrated? Can't a density anomaly in one layer tell you how high the sea surface is?</p>
+              <p class="qa-a"><span class="qa-tag">Later</span>Sea-surface height is the accumulated contribution of specific-volume anomalies over all layers — large near the surface, small at depth, but every layer counts. Looking at a single layer is looking at one term of that sum: layers differ in thickness, so equal anomalies do not contribute equally. You have to integrate layer by layer before you can say how much the surface is raised.</p>
+            </div>
+          </div>
+          <p class="week-map">Textbook: Ch. 7 · Fig. 7.11</p>
+        </div>
+      </details>
+
+      <details class="wk" id="w5" open>
+        <summary><span class="wk-no">Week 5</span><span class="wk-t">Sverdrup balance, Ekman pumping and potential vorticity</span></summary>
+        <div class="wk-body">
+          <div class="blk"><h3>What I learned</h3>
+            <ul>
+              <li>The core is conservation of potential vorticity: a stretched water column moves poleward, a squashed one moves equatorward.</li>
+              <li>The full chain: wind → surface convergence/divergence → stretching/squashing → to conserve vorticity the column is pushed poleward/equatorward → a broad interior Sverdrup flow → closed by a strong western boundary current.</li>
+              <li>Ekman pumping is the step that turns wind-stress curl into vertical motion.</li>
+            </ul>
+          </div>
+          <figure class="fig">
+            <img src="content/images/weekly/w5-fig7-13.png" alt="Textbook Fig. 7.13" loading="lazy">
+            <figcaption>Textbook Fig. 7.13 · Ekman pumping and Sverdrup transport</figcaption>
+          </figure>
+          <div class="blk"><h3>What I did not get → how I got it</h3>
+            <div class="qa">
+              <p class="qa-q"><span class="qa-tag">At first</span>What is Sverdrup balance actually saying? Why would wind make the whole basin transport water in one direction?</p>
+              <p class="qa-a"><span class="qa-tag">Later</span>The key is conservation of potential vorticity: because potential vorticity is conserved, a stretched column moves poleward and a squashed column moves equatorward. Combine that constraint with the surface convergence/divergence forced by the wind and you get the interior Sverdrup transport — it is not that the wind blows water across the basin, but that the column is forced north or south to keep its vorticity.</p>
+            </div>
+          </div>
+          <p class="week-map">Textbook: Ch. 7 · Fig. 7.13</p>
+        </div>
+      </details>
+
+      <details class="wk" id="w6">
+        <summary><span class="wk-no">Week 6</span><span class="wk-t todo">Topic · to be added</span></summary>
+        <div class="wk-body">
+          <div class="blk"><h3>What I learned</h3>
+            <div class="slot">Three to five points, in my own words.</div></div>
+          <p class="week-map">Textbook: to be added</p>
+        </div>
+      </details>
+
+      <details class="wk" id="w7">
+        <summary><span class="wk-no">Week 7</span><span class="wk-t todo">Topic · to be added</span></summary>
+        <div class="wk-body">
+          <div class="blk"><h3>What I learned</h3>
+            <div class="slot">Three to five points, in my own words.</div></div>
+          <p class="week-map">Textbook: to be added</p>
+        </div>
+      </details>
+
+      <details class="wk" id="w8">
+        <summary><span class="wk-no">Week 8</span><span class="wk-t todo">Topic · to be added</span></summary>
+        <div class="wk-body">
+          <div class="blk"><h3>What I learned</h3>
+            <div class="slot">Three to five points, in my own words.</div></div>
+          <p class="week-map">Textbook: to be added</p>
+        </div>
+      </details>
+
+    </div>

@@ -1,0 +1,53 @@
+      <h3 class="c-sub-title">Story time · Filaments: the thin threads of the ocean</h3>
+      <p class="c-note">
+        A two-minute video story: one person only, physical oceanography only, submitted as mp4 on the XueZaiZJU platform.
+        Below is the video and a three-part written version.
+      </p>
+
+      <div class="video-wrap">
+        <video controls preload="metadata" poster="content/images/weekly/filaments-sst.png">
+          <source src="content/videos/filaments.mp4" type="video/mp4">
+          Your browser cannot play this video — <a href="content/videos/filaments.mp4">download it directly</a>.
+        </video>
+        <p class="video-meta">1′47″ · 1280×720 · Mandarin narration (AI voice, Microsoft Xiaoxiao)</p>
+      </div>
+
+      <div class="story">
+
+        <article class="story-part">
+          <div class="story-tag">Opening · the phenomenon and the question</div>
+          <p>The sea looks like one continuous sheet — but zoom in and it is full of thin threads. They are not drawn on; they are real structures. Oceanographers call these long, narrow bands <strong>filaments</strong>: often only a few kilometres to tens of kilometres wide, yet stretching out for hundreds of kilometres.</p>
+        </article>
+
+        <article class="story-part">
+          <div class="story-tag">Middle · how I went looking for answers</div>
+          <ul>
+            <li>First, find an image where a front is visible: NASA MUR SST (1 km resolution), sea-surface temperature for one day in the Gulf Stream region — blue is cold water, red is warm water, and the sharply changing boundary between them is the front.</li>
+            <li>Then compute the gradient myself: subtract neighbouring grid points and take the magnitude, which gives the horizontal temperature gradient — where temperature changes fastest.</li>
+            <li>Mark the small fraction of pixels with the largest gradient in white and put them back on the image: the high-gradient bands line up, one by one, with the filaments you can see by eye.</li>
+            <li>Finally, think about the mechanism: the flow field stretches and squeezes at the same time, so a parcel caught in it is drawn out longer and thinner — which is why filaments always follow the front.</li>
+          </ul>
+        </article>
+
+        <article class="story-part">
+          <div class="story-tag">Ending · the conclusion and what is still open</div>
+          <p>Filaments are not just a physical curiosity. They act like a conveyor belt: they carry nutrient-rich deep water up into the sunlit layer, phytoplankton grow along the band, and fish schools and larvae often follow them too.</p>
+          <p>If a filament disperses within a few days, what happens to the organisms that depend on it? That is exactly what biological oceanography is trying to answer.</p>
+        </article>
+
+        <article class="story-part">
+          <div class="story-tag">Evidence · you can check it yourself</div>
+          <figure class="fig">
+            <img src="content/images/weekly/filaments-sst.png" alt="Sea-surface temperature in the Gulf Stream region" loading="lazy">
+            <figcaption>NASA MUR SST · sea-surface temperature in the Gulf Stream region (cold blue, warm red, front in between)</figcaption>
+          </figure>
+          <figure class="fig">
+            <img src="content/images/weekly/filaments-gradient.png" alt="Temperature gradient computed by me" loading="lazy">
+            <figcaption>Left: sea-surface temperature. Right: the temperature gradient I computed — the bright band sits right on the front.</figcaption>
+          </figure>
+        </article>
+
+      </div>
+      <p class="story-note">
+        Data: NASA MUR SST (JPL / PO.DAAC), retrieved through NOAA CoastWatch ERDDAP; the gradient and the figures were computed with Python (numpy + Pillow).
+      </p>

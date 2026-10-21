@@ -1133,6 +1133,13 @@ table.map td { color: var(--text-2); }
 .story-part a { color: var(--accent); }
 .story-note { margin: 12px 0 0; font-size: 12px; line-height: 1.8; color: var(--muted); }
 
+
+/* 语言切换按钮 */
+.lang-btn {
+  font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  min-width: 44px; font-family: var(--font-sans);
+}
+
 /* 出门票（放在页面最末尾） */
 .tk-list { display: grid; gap: 12px; margin-top: 16px; }
 .tk {
@@ -1210,3 +1217,6 @@ table.map td { color: var(--text-2); }
   .wk > summary { padding: 12px 14px; gap: 9px; flex-wrap: wrap; }
   .wk-body { padding: 4px 14px 16px; }
 }
+/* 英文模式下由 CSS 生成的中文标签 */
+html[data-lang="en"] .wk > summary::after { content: "Open +"; }
+html[data-lang="en"] .wk[open] > summary::after { content: "Close -"; }

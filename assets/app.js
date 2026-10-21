@@ -731,37 +731,6 @@
     }).filter(Boolean);
   }
 
-  /* ---------- 第四段：出门票 ---------- */
-  /**
-   * 出门票：首页最底部的卡片墙，用来汇总各人的作品。
-   * 数据来自 data/library.json 的 site.tickets，人工维护、自己复制粘贴。
-   * 每项：{ no, title, desc, href, img }
-   */
-  function ticketsHTML() {
-    var list = (LIB.site && LIB.site.tickets) || [];
-    var head = '<div class="sec-head"><h2>出门票</h2><span class="line"></span>' +
-      '<span class="more">' + (list.length ? list.length + ' 张' : '待补充') + '</span></div>';
-
-    // 没有数据就整块不渲染（出门票已改为页面末尾的静态板块）
-    if (!list.length) return '';
-
-    return '<section class="tickets" id="tickets">' + head +
-      '<div class="ticket-grid">' + list.map(function (t, i) {
-        var no = String(t.no != null ? t.no : i + 1);
-        var inner =
-          (t.img ? '<div class="ticket-img"><img src="' + esc(t.img) + '" alt="" loading="lazy" decoding="async"></div>' : '') +
-          '<div class="ticket-body">' +
-          '<span class="ticket-no">' + esc(no.length < 2 ? '0' + no : no) + '</span>' +
-          '<h3>' + esc(t.title || ('出门票 ' + no)) + '</h3>' +
-          (t.desc ? '<p>' + esc(t.desc) + '</p>' : '') +
-          '</div>';
-        // 有链接就整张可点，没有就退化成静态卡片，避免出现死链
-        return t.href
-          ? '<a class="ticket" href="' + esc(t.href) + '" target="_blank" rel="noopener">' + inner + '</a>'
-          : '<div class="ticket">' + inner + '</div>';
-      }).join('') + '</div></section>';
-  }
-
   function viewList(r) {
     var f = listFilter(r);
     return loadLibrary().then(function () {
@@ -839,7 +808,7 @@
       // 三段式：筛选状态下不再显示宣言与精选，避免干扰
       var prefix = filtering
         ? ''
-        : (heroHTML() + featuredHTML() + navHTML(f) + search + body + ticketsHTML());
+        : (heroHTML() + featuredHTML() + navHTML(f) + search + body);
       var html = filtering ? (search + body) : prefix;
       $('#app').innerHTML = html;
 
