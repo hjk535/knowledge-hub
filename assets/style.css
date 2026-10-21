@@ -1131,6 +1131,21 @@ table.map td { color: var(--text-2); }
 .fig-quote { margin: 12px 0; }
 .quote-text { font-size: 14px; line-height: 1.9; color: var(--text-2); }
 
+/* 没懂 → 想通 */
+.qa {
+  padding: 14px 16px; background: var(--surface);
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+.qa-q { margin: 0 0 12px; font-size: 14px; line-height: 1.9; color: var(--text); }
+.qa-a { margin: 0; font-size: 14px; line-height: 1.95; color: var(--text-2); }
+.qa-tag {
+  display: inline-block; margin-right: 8px; padding: 2px 9px;
+  font-size: 11px; letter-spacing: .06em; color: var(--accent);
+  border: 1px solid var(--border-2); border-radius: 999px;
+  vertical-align: 1px; white-space: nowrap;
+}
+
 /* 教材电子版下载卡 */
 .dl-card {
   display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
