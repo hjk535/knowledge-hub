@@ -1,3 +1,5 @@
+    <p class="ai-note">This site was produced with an AI assistant (DeepSeek); the content is based on my own class notes and public data, and has been reviewed item by item.</p>
+
     <h2 class="c-title" id="class-log">Class · Eight Weeks</h2>
     <p class="c-lead">
       Eight weeks, one lesson per week. Each entry records what I learned in that class, what I did not understand at the time,
@@ -120,33 +122,67 @@
               <p class="qa-a"><span class="qa-tag">Later</span>The key is conservation of potential vorticity: because potential vorticity is conserved, a stretched column moves poleward and a squashed column moves equatorward. Combine that constraint with the surface convergence/divergence forced by the wind and you get the interior Sverdrup transport — it is not that the wind blows water across the basin, but that the column is forced north or south to keep its vorticity.</p>
             </div>
           </div>
+            <div class="qa">
+              <p class="qa-q"><span class="qa-tag">At first</span>Potential vorticity is sometimes written f + ζ = const and sometimes (f + ζ)/H = const — does it get divided by depth or not?</p>
+              <p class="qa-a"><span class="qa-tag">Later</span>The two are equivalent only when H does not change: with a fixed column thickness the H cancels. But in Sverdrup balance H is exactly what changes — Ekman pumping stretches or squashes the column — so it must be (f + ζ)/H. If f + ζ were conserved, stretching would have no effect on the flow and Sverdrup transport would never come out.</p>
+            </div>
           <p class="week-map">Textbook: Ch. 7 · Fig. 7.13</p>
         </div>
       </details>
 
-      <details class="wk" id="w6">
-        <summary><span class="wk-no">Week 6</span><span class="wk-t todo">Topic · to be added</span></summary>
+      <details class="wk" id="w6" open>
+        <summary><span class="wk-no">Week 6</span><span class="wk-t">Waves: the four characteristics and phase speed</span></summary>
         <div class="wk-body">
           <div class="blk"><h3>What I learned</h3>
-            <div class="slot">Three to five points, in my own words.</div></div>
-          <p class="week-map">Textbook: to be added</p>
+            <ul>
+              <li>The first slide answers what a wave is: a disturbance pulled back toward equilibrium that overshoots — so a restoring force is required.</li>
+              <li>A wave carries a disturbance from place to place (long-distance propagation) while the water itself hardly moves (little mass transport).</li>
+              <li>Waves also carry energy — the property that makes them such effective transporters.</li>
+              <li>The second slide pins down phase speed: the dispersion relation ω² = gk·tanh(kh), so C = √[(g/k)·tanh(kh)].</li>
+              <li>Deep water (h &gt; λ/2): tanh → 1, so C = √(g/k) — depends on wavelength only, not on depth.</li>
+              <li>Shallow water (h &lt; λ/20): tanh ≈ kh, so C = √(gh) — depends on depth only.</li>
+            </ul>
+            <p class="week-src">Collected into a table: <a href="#/i/waves">wave types and the four characteristics</a></p>
+          </div>
+          <figure class="fig">
+            <img src="content/images/weekly/w6-wave-characteristics.jpeg" alt="What are the characteristics of waves" loading="lazy">
+            <figcaption>Lecture slide · What are the characteristics of waves? (restoring force / long-distance propagation / little mass transport / energy carrier)</figcaption>
+          </figure>
+          <figure class="fig">
+            <img src="content/images/weekly/w6-phase-speed.jpeg" alt="Determination of phase speed C" loading="lazy">
+            <figcaption>Lecture slide · phase speed C: dispersion relation and the deep- and shallow-water limits</figcaption>
+          </figure>
+          <p class="week-map">Textbook: Ch. 7 · waves</p>
         </div>
       </details>
 
-      <details class="wk" id="w7">
-        <summary><span class="wk-no">Week 7</span><span class="wk-t todo">Topic · to be added</span></summary>
+      <details class="wk" id="w7" open>
+        <summary><span class="wk-no">Week 7</span><span class="wk-t">Rossby waves and the types of waves</span></summary>
         <div class="wk-body">
           <div class="blk"><h3>What I learned</h3>
-            <div class="slot">Three to five points, in my own words.</div></div>
-          <p class="week-map">Textbook: to be added</p>
+            <ul>
+              <li>Ocean Rossby waves: the restoring force is the β effect of the Earth's rotation, and they propagate westward.</li>
+              <li>Topographic Rossby waves: the restoring force comes from depth changes over uneven topography.</li>
+              <li>Decide deep versus shallow water by comparing h with λ (h &gt; λ/2 deep, h &lt; λ/20 shallow), then pick the matching speed formula.</li>
+              <li>Lay every wave type side by side on four axes: restoring force, propagation distance, mass transport, energy transport.</li>
+            </ul>
+            <p class="week-src">The 34-type comparison table: <a href="#/i/waves">wave types and the four characteristics</a></p>
+          </div>
+          <p class="week-map">Textbook: Ch. 7 · waves</p>
         </div>
       </details>
 
-      <details class="wk" id="w8">
-        <summary><span class="wk-no">Week 8</span><span class="wk-t todo">Topic · to be added</span></summary>
+      <details class="wk" id="w8" open>
+        <summary><span class="wk-no">Week 8</span><span class="wk-t">Internal waves, and connecting the course to my own research</span></summary>
         <div class="wk-body">
           <div class="blk"><h3>What I learned</h3>
-            <div class="slot">Three to five points, in my own words.</div></div>
+            <ul>
+              <li>Internal waves: waves inside a density-stratified fluid — the interface displacements are far larger than those of surface waves.</li>
+              <li>Look for the frontier where physical oceanography meets my own field, then choose a session to submit to.</li>
+              <li>My field is physical oceanography × marine biology (antimicrobial peptides); I plan to submit to the EGU27 microbe-interaction session and add an environmental-gradient narrative to fit it.</li>
+              <li>What I gained in tools: installed several agent skills, downloaded three PPT-making sub-skills, and generated an HTML page.</li>
+            </ul>
+          </div>
           <p class="week-map">Textbook: to be added</p>
         </div>
       </details>

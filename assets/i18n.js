@@ -33,7 +33,8 @@
     'sec-class': 'assets/i18n/en-class.html',
     'sec-book': 'assets/i18n/en-book.html',
     'story': 'assets/i18n/en-story.html',
-    'tickets': 'assets/i18n/en-tickets.html'
+    'tickets': 'assets/i18n/en-tickets.html',
+    'about': 'assets/i18n/en-about.html'
   };
   Object.keys(FRAG).forEach(function (id) {
     var el = document.getElementById(id);
@@ -83,7 +84,7 @@
     "以九个问题整理海洋科学与学习中的关键概念，适合快速浏览与复习。": "Nine questions that organise the key concepts of ocean science — good for a quick review.",
 
     '交互页': 'Interactive',
-    '简内容': 'items',
+    '篇内容': 'items',
     '按时间': 'by date',
     '收起': 'Close',
     '展开': 'Open'

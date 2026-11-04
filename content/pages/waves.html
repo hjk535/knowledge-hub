@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>物理海洋学中的波：类型与四个基本特征</title>
+<style>
+  :root {
+    --paper:#f7f3e8; --surface:#fdfaf1; --ink:#16283a; --muted:#5d6f7d;
+    --line:#d8cbab; --accent:#8a5a12; --accent2:#0d5c74;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:28px 22px 60px; background:var(--paper); color:var(--ink);
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    line-height:1.7; font-size:15px;
+  }
+  header { max-width:1180px; margin:0 auto 22px; }
+  h1 { margin:0 0 6px; font-size:clamp(22px, 3vw, 30px); letter-spacing:.01em; }
+  .sub { margin:0 0 18px; color:var(--muted); font-size:13.5px; }
+  .bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .dl {
+    display:inline-block; padding:9px 18px; border-radius:999px; text-decoration:none;
+    background:var(--accent); color:#fdf6e4; font-size:13.5px;
+  }
+  .dl:hover { filter:brightness(1.08); }
+  .hint { color:var(--muted); font-size:12.5px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  .scroller {
+    overflow:auto; max-height:78vh; border:1px solid var(--line);
+    border-radius:10px; background:var(--surface); box-shadow:0 2px 10px rgba(90,66,24,.08);
+  }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  thead th {
+    position:sticky; top:0; z-index:2; background:#efe6cf; color:var(--ink);
+    font-size:12px; letter-spacing:.04em; font-weight:600; text-align:left;
+    padding:11px 12px; border-bottom:1px solid var(--line); white-space:nowrap;
+  }
+  tbody td { padding:10px 12px; border-bottom:1px solid #ece4d0; vertical-align:top; }
+  tbody tr:nth-child(even) { background:#fbf7ec; }
+  tbody tr:hover { background:#f5edd8; }
+  tbody td:first-child { color:var(--accent); font-variant-numeric:tabular-nums; width:44px; }
+  tbody td:nth-child(2) { white-space:nowrap; color:var(--accent2); font-weight:600; }
+  tbody td:nth-child(3) { min-width:170px; }
+  h2 { margin:38px 0 8px; font-size:17px; letter-spacing:.04em; color:var(--accent); }
+  .note { margin:0 0 14px; color:var(--muted); font-size:13px; }
+  footer { max-width:1180px; margin:36px auto 0; color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>物理海洋学中的波：类型与四个基本特征</h1>
+    <p class="sub">按恢复力 / 生成机制归类 · 共 34 类 · 参数为典型量级 · ①–④ 与图片四条概念一一对应</p>
+    <div class="bar">
+      <a class="dl" href="../files/waves.xlsx" download>下载原始表格（xlsx）</a>
+      <span class="hint">表头固定，可横向滚动查看四列特征</span>
+    </div>
+  </header>
+
+  <div class="scroller">
+<table>
+<thead><tr>
+<th>序号</th>
+<th>类别</th>
+<th>波名（中文 / English）</th>
+<th>① 恢复力（形成机制）</th>
+<th>② 长距离传播</th>
+<th>③ 质量输运（水质点运动）</th>
+<th>④ 能量传输</th>
+<th>典型周期 / 波长</th>
+</tr></thead><tbody>
+<tr>
+<td>1</td>
+<td>A 表面波</td>
+<td>毛细波（表面张力波）<br>Capillary wave</td>
+<td>表面张力主导，重力可忽略</td>
+<td>弱：仅厘米–米级，高频、黏性耗散快</td>
+<td>近零：水质点作微小圆轨道，无净输运</td>
+<td>弱：能量小、寿命短；控制海面粗糙度、微波散射与海气交换</td>
+<td>λ &lt; 1.7 cm；T &lt; 0.1 s</td>
+</tr>
+<tr>
+<td>2</td>
+<td>A 表面波</td>
+<td>毛细—重力波<br>Capillary–gravity wave</td>
+<td>表面张力与重力共同作用；λ≈1.7 cm 处相速最小（≈23 cm/s）</td>
+<td>弱：仍属短波，传播距离有限</td>
+<td>极小</td>
+<td>弱：风生波成长的过渡尺度，能量很快耗散</td>
+<td>λ ≈ 1.7 cm；T ≈ 0.1 s</td>
+</tr>
+<tr>
+<td>3</td>
+<td>A 表面波</td>
+<td>风浪<br>Wind sea</td>
+<td>重力；风应力持续输入能量</td>
+<td>中：随风区增长，可在风区内传播数百 km，方向随局地风</td>
+<td>小：存在 Stokes 漂移（约相速的 1–4%），净输运有限</td>
+<td>强：风能→波能，能量通量 E·c_g（E 为能量密度）；破碎与白冠耗散</td>
+<td>λ 1–100 m；T 1–10 s</td>
+</tr>
+<tr>
+<td>4</td>
+<td>A 表面波</td>
+<td>涌浪<br>Swell</td>
+<td>重力；自由传播，无风强迫</td>
+<td>强：可跨洋传播数千–上万 km，低频涌浪衰减小</td>
+<td>小：Stokes 漂移很小</td>
+<td>强：把风暴能量输运到远处海岸，是优良的能量载体</td>
+<td>T 8–20 s；λ 100–500 m</td>
+</tr>
+<tr>
+<td>5</td>
+<td>A 表面波</td>
+<td>斯托克斯波<br>Stokes wave</td>
+<td>重力；非线性有限振幅自由波</td>
+<td>中：波形稳定，可传播较远；波峰尖、波谷平</td>
+<td>有：二阶 Stokes 漂移，净水质点输运不为零</td>
+<td>中：非线性增强波能通量；接近极限波时破碎</td>
+<td>深水；有限振幅（陡度 ak）</td>
+</tr>
+<tr>
+<td>6</td>
+<td>A 表面波</td>
+<td>椭圆余弦波 / 孤立波<br>Cnoidal / solitary wave</td>
+<td>重力；浅水非线性与色散平衡</td>
+<td>强：浅水中可长距离传播且波形近乎不变</td>
+<td>明显：水质点水平往复，近底质量输运强</td>
+<td>强：能量集中，可在浅水传播很远后破碎</td>
+<td>λ ≫ h；孤立波 T 数秒–数分钟</td>
+</tr>
+<tr>
+<td>7</td>
+<td>A 表面波</td>
+<td>畸形波<br>Rogue wave</td>
+<td>重力；多波非线性聚焦，非单一恢复力</td>
+<td>弱：突然生成、寿命短，不作长距离传播</td>
+<td>局地：水质点速度大</td>
+<td>瞬时聚焦：能量集中，破坏性极强（H &gt; 2Hs）</td>
+<td>T 10–20 s</td>
+</tr>
+<tr>
+<td>8</td>
+<td>A 表面波</td>
+<td>次重力波<br>Infragravity wave</td>
+<td>重力；由波群拍频或约束波释放产生</td>
+<td>较强：可跨越陆架传播数百 km；边缘波可沿程传播</td>
+<td>小：近岸底部水质点运动影响泥沙输运</td>
+<td>中：把波群能量带入近岸，驱动爬高、沿岸流与海滩地形</td>
+<td>T 25–250 s；λ 100 m–数 km</td>
+</tr>
+<tr>
+<td>9</td>
+<td>A 表面波</td>
+<td>边缘波<br>Edge wave</td>
+<td>重力；折射使波能陷获于海岸</td>
+<td>强：沿程传播数十–数百 km，不远离岸线</td>
+<td>沿岸方向水质点运动；跨岸净输运小</td>
+<td>中：近岸能量陷获，可形成海滩韵律地形</td>
+<td>T 数十秒–数分钟</td>
+</tr>
+<tr>
+<td>10</td>
+<td>A 表面波</td>
+<td>静振（假潮）<br>Seiche</td>
+<td>重力；封闭/半封闭盆地的自由振荡</td>
+<td>无：驻波，不向外界传播</td>
+<td>水体整体往复，净质量输运为零</td>
+<td>能量在盆地内往复交换并逐渐耗散</td>
+<td>T 数分钟–数十分钟</td>
+</tr>
+<tr>
+<td>11</td>
+<td>A 表面波</td>
+<td>海啸<br>Tsunami</td>
+<td>重力；长波（λ ≫ h）</td>
+<td>极强：跨洋传播、衰减小，c=√(gh)≈200 m/s（h=4 km）</td>
+<td>深水极小（水质点运动微弱）；近岸变浅时剧增</td>
+<td>极强：能量通量沿传播方向近似守恒，是高效能量载体</td>
+<td>T 10 min–1 h；λ 100–1000 km</td>
+</tr>
+<tr>
+<td>12</td>
+<td>A 表面波</td>
+<td>气象海啸<br>Meteotsunami</td>
+<td>重力；气压跃变/风扰动强迫，尺度与海啸相近</td>
+<td>较强：可跨陆架、海盆传播</td>
+<td>小（深水）</td>
+<td>中：大气扰动输入能量，近岸共振放大成灾</td>
+<td>T 数分钟–1 h；λ 数十–数百 km</td>
+</tr>
+<tr>
+<td>13</td>
+<td>A 表面波</td>
+<td>风暴潮<br>Storm surge</td>
+<td>重力（受迫长波）；风应力＋气压梯度驱动，非自由振荡</td>
+<td>弱–中：随天气系统移动，沿浅海与海岸传播</td>
+<td>大：真实海水堆积、水位抬升，质量输运显著</td>
+<td>强：风与气压做功→位能/动能，近岸耗散成灾</td>
+<td>T 数小时–数天；空间尺度数百 km</td>
+</tr>
+<tr>
+<td>14</td>
+<td>A 表面波</td>
+<td>潮汐<br>Tide</td>
+<td>重力；天体引潮力驱动，科氏力塑造动力响应</td>
+<td>强：作为浅水长波在洋盆传播，形成旋转潮波与无潮点</td>
+<td>中：潮流显著（往复流），净质量输运小但输运泥沙与物质</td>
+<td>极强：全球潮能耗散约 3.5 TW，主要在浅海；驱动混合</td>
+<td>T 12.42 h / 24.84 h；λ 数百–数千 km</td>
+</tr>
+<tr>
+<td>15</td>
+<td>A 表面波</td>
+<td>潮涌<br>Tidal bore</td>
+<td>重力；潮波在河口/喇叭湾非线性陡化</td>
+<td>中：沿河口上溯数十–数百 km</td>
+<td>强：前锋携带大量水体，瞬时质量输运大</td>
+<td>强：强湍流耗散，塑造河床</td>
+<td>波前数分钟；河口尺度</td>
+</tr>
+<tr>
+<td>16</td>
+<td>A 表面波</td>
+<td>船波（开尔文尾迹）<br>Ship wave / Kelvin wake</td>
+<td>重力；船体扰动</td>
+<td>弱：随船移动，船后有限距离</td>
+<td>小</td>
+<td>船动能→波能，形成兴波阻力</td>
+<td>取决于船速与水深（Froude 数）</td>
+</tr>
+<tr>
+<td>17</td>
+<td>B 内波</td>
+<td>内重力波<br>Internal gravity wave</td>
+<td>浮力（约化重力 g′=gΔρ/ρ）</td>
+<td>强：沿射线传播数百–数千 km，可跨洋盆</td>
+<td>小：水质点沿斜轨道运动，净输运小；混合效应强</td>
+<td>强：把能量从生成地输送到远处破碎，驱动深海混合</td>
+<td>T 数分钟–数小时；λ 100 m–10 km</td>
+</tr>
+<tr>
+<td>18</td>
+<td>B 内波</td>
+<td>内潮<br>Internal tide</td>
+<td>浮力；正压潮与地形相互作用生成</td>
+<td>强：从生成地传播数百–数千 km</td>
+<td>小：流速可达数十 cm/s，净质量输运小</td>
+<td>极强：全球约 1 TW 正压潮能转为斜压内潮，是深海混合主源</td>
+<td>T 12.42 h 等；λ 数十–数百 km</td>
+</tr>
+<tr>
+<td>19</td>
+<td>B 内波</td>
+<td>内孤立波<br>Internal solitary wave</td>
+<td>浮力；非线性与色散平衡</td>
+<td>强：可传播数百 km，波形近乎不变</td>
+<td>强：水平流速可达 1 m/s，显著质量输运</td>
+<td>强：能量集中，破碎产生强混合</td>
+<td>λ 100 m–10 km；振幅 10–100 m</td>
+</tr>
+<tr>
+<td>20</td>
+<td>B 内波</td>
+<td>内开尔文波<br>Internal Kelvin wave</td>
+<td>浮力＋科氏力（边界地转平衡）</td>
+<td>强：沿边界单向传播数千 km</td>
+<td>沿边界方向的水体输运</td>
+<td>中：能量沿边界传播</td>
+<td>T 数小时–数天</td>
+</tr>
+<tr>
+<td>21</td>
+<td>B 内波</td>
+<td>背风波<br>Lee wave</td>
+<td>浮力；层结流越过地形</td>
+<td>弱：相对地形驻立，不向远场传播</td>
+<td>局地</td>
+<td>中：地形阻力→内波辐射→局地混合</td>
+<td>λ 数 km；T 数十分钟</td>
+</tr>
+<tr>
+<td>22</td>
+<td>B 内波</td>
+<td>内静振<br>Internal seiche</td>
+<td>浮力；分层盆地的驻波</td>
+<td>无：盆地内驻波</td>
+<td>往复，净输运为零</td>
+<td>局地耗散</td>
+<td>T 数十分钟–数小时</td>
+</tr>
+<tr>
+<td>23</td>
+<td>B 内波</td>
+<td>近惯性内波<br>Near-inertial internal wave</td>
+<td>科氏力＋浮力（频率接近 f）</td>
+<td>中：水平数百 km，垂向向下传播</td>
+<td>小</td>
+<td>强：风生近惯性能量进入深海的主要通道，驱动混合</td>
+<td>T ≈ 2π/f（中纬 12–17 h）</td>
+</tr>
+<tr>
+<td>24</td>
+<td>C 旋转波</td>
+<td>惯性振荡（惯性波）<br>Inertial oscillation</td>
+<td>科氏力</td>
+<td>弱：频率为 f，群速近零，主要局地振荡</td>
+<td>零：水质点作惯性圆，净输运为零</td>
+<td>弱：局地动能，可辐射为近惯性内波</td>
+<td>T = 2π/f（半摆日）</td>
+</tr>
+<tr>
+<td>25</td>
+<td>C 旋转波</td>
+<td>惯性重力波（庞加莱波）<br>Inertia–gravity / Poincaré wave</td>
+<td>重力＋科氏力</td>
+<td>中–强：在通道/洋盆中传播</td>
+<td>小</td>
+<td>中：沿岸与盆地尺度能量传播</td>
+<td>T 数小时</td>
+</tr>
+<tr>
+<td>26</td>
+<td>C 旋转波</td>
+<td>沿岸开尔文波<br>Coastal Kelvin wave</td>
+<td>重力＋科氏力（边界地转平衡）</td>
+<td>强：沿岸单向传播数千 km，衰减小</td>
+<td>沿传播方向的水体输运（沿岸流）</td>
+<td>强：沿岸能量与信号传播</td>
+<td>T 数小时–数天</td>
+</tr>
+<tr>
+<td>27</td>
+<td>C 旋转波</td>
+<td>赤道开尔文波<br>Equatorial Kelvin wave</td>
+<td>重力＋科氏力（赤道波导，f→0）</td>
+<td>强：东向传播，跨太平洋约 2–3 m/s，数十天</td>
+<td>温跃层位移，沿赤道水体输运</td>
+<td>强：ENSO 信号东传的主要载体</td>
+<td>T 数十天；λ 数千 km</td>
+</tr>
+<tr>
+<td>28</td>
+<td>C 旋转波</td>
+<td>罗斯贝波（行星波）<br>Rossby / planetary wave</td>
+<td>β 效应（f 随纬度变化）/ 位涡梯度</td>
+<td>强：西向传播、跨洋盆，但速度慢（斜压模态 cm/s）</td>
+<td>近零：波动，无净质量输运</td>
+<td>强：大尺度位涡调整，影响海流、热量与气候</td>
+<td>T 数月–数年；λ 数百–数千 km</td>
+</tr>
+<tr>
+<td>29</td>
+<td>C 旋转波</td>
+<td>地形罗斯贝波<br>Topographic Rossby wave</td>
+<td>地形造成的位涡梯度（f/H 变化）</td>
+<td>强：沿等深线/陆坡传播，跨海盆</td>
+<td>小</td>
+<td>中：能量沿陆坡传播</td>
+<td>T 数天–数月</td>
+</tr>
+<tr>
+<td>30</td>
+<td>C 旋转波</td>
+<td>赤道罗斯贝波<br>Equatorial Rossby wave</td>
+<td>β 效应＋赤道波导</td>
+<td>强：西向，跨太平洋</td>
+<td>小</td>
+<td>中：ENSO 位涡调整</td>
+<td>T 数周–数月</td>
+</tr>
+<tr>
+<td>31</td>
+<td>C 旋转波</td>
+<td>柳井波（混合罗斯贝—重力波）<br>Yanai / mixed Rossby–gravity wave</td>
+<td>β 效应＋重力（混合罗斯贝–重力波）</td>
+<td>强：赤道波导，主要东向</td>
+<td>小</td>
+<td>中：赤道能量传播</td>
+<td>T 数周</td>
+</tr>
+<tr>
+<td>32</td>
+<td>C 旋转波</td>
+<td>陆架波 / 沿岸陷波<br>Shelf wave / coastal-trapped wave</td>
+<td>地形＋科氏力（位涡梯度）</td>
+<td>强：沿陆架单向传播数百–数千 km</td>
+<td>沿岸流输运</td>
+<td>中：沿岸能量传播</td>
+<td>T 数天</td>
+</tr>
+<tr>
+<td>33</td>
+<td>D 不稳定波</td>
+<td>斜压不稳定波<br>Baroclinic instability wave</td>
+<td>无恢复力：位涡梯度反号导致斜压不稳定增长</td>
+<td>弱：缓慢东传或驻立，最终破碎为涡旋</td>
+<td>强：热量、动量、盐度输运显著</td>
+<td>强：平均位能→涡动能，中尺度涡能量来源</td>
+<td>T 数周；λ 数十–数百 km</td>
+</tr>
+<tr>
+<td>34</td>
+<td>D 不稳定波</td>
+<td>正压不稳定波<br>Barotropic instability wave</td>
+<td>无恢复力：水平剪切不稳定（Rayleigh 判据）</td>
+<td>弱：沿急流传播并增长</td>
+<td>强：动量输运</td>
+<td>强：平均动能→涡动能</td>
+<td>T 数天；λ 数十–数百 km</td>
+</tr>
+</tbody></table>
+  </div>
+
+  <h2>图片中的四个波的基本概念</h2>
+  <p class="note">原文摘自课件：What are the characteristics of waves ?</p>
+  <div class="scroller" style="max-height:none">
+<table>
+<thead><tr>
+<th>概念</th>
+<th>图片原文（English）</th>
+<th>中文释义</th>
+<th>对应本表列</th>
+</tr></thead><tbody>
+<tr>
+<td>① 恢复力</td>
+<td>A wave is formed when a disturbance is pulled back towards the equilibrium position but overshoots. (requires a restoring force)</td>
+<td>当扰动被拉回平衡位置、却冲过了头时，就形成波；恢复力使水质点往复振荡。</td>
+<td>本表 D 列</td>
+</tr>
+<tr>
+<td>② 长距离传播</td>
+<td>A wave transfers a disturbance from one place to another. (long distance propagation)</td>
+<td>波把扰动从一处传递到另一处，可以远离源地。</td>
+<td>本表 E 列</td>
+</tr>
+<tr>
+<td>③ 质量输运</td>
+<td>The disturbance is transmitted through the water without substantial movement of water itself. (little mass transport)</td>
+<td>扰动靠水体传递，而水体本身没有显著的整体移动。</td>
+<td>本表 F 列</td>
+</tr>
+<tr>
+<td>④ 能量载体</td>
+<td>Energy is transported or propagated by waves. (good energy carrier)</td>
+<td>波是能量的载体；能量通量＝能量密度×群速度</td>
+<td>本表 G 列</td>
+</tr>
+<tr>
+<td>读表提示</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>• 四个概念并非对每种波都同样显著：毛细波几乎不传能量，海啸几乎不输运质量，而风浪、内潮则是典型的能量载体。</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>• 表中每格先给判断（极强 / 强 / 中 / 弱 / 无），再给机制或量级，便于横向比较。</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>• 分类依据是主要恢复力与生成机制；有些波可跨类，例如内潮既是内波又是潮波，赤道开尔文波既属旋转波又属长波。</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>• 数值为开阔洋、典型层结下的量级，随水深、纬度、层结与海域变化，不宜当作精确常数。</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>• “质量输运”按欧拉平均意义；风浪、涌浪的 Stokes 漂移是二阶小量，但长期输运不可忽略。</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>• 第 33–34 类为不稳定增长波，不靠恢复力维持，列作补充以便与“自由波”对照。</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>• “所有波”在文献中并无封闭清单；本表按物理海洋学教材的常用分类，穷举主要类型。</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+  </div>
+
+  <footer>来源：本人课程整理 · 参数为典型量级，用于复习对照</footer>
+</div>
+</body>
+</html>

@@ -57,6 +57,8 @@
 
     <!-- ==================== A · 课堂 ==================== -->
     <div id="sec-class">
+    <p class="ai-note">本站由 AI 辅助生成（DeepSeek），内容依据本人课堂笔记与公开数据整理，已逐条核对。</p>
+
     <h2 class="c-title" id="class-log">课堂 · 八周课程</h2>
     <p class="c-lead">
       这门课共八周（Week 1–8），每周一个课次。每一次课的课堂笔记都记在这里：当周学了什么、
@@ -179,34 +181,70 @@
               <p class="qa-a"><span class="qa-tag ok">后来想通</span>关键在位涡守恒：由于位涡守恒，海水柱被拉伸，就往极地方向移动；海水柱被压扁，就往赤道方向移动。把这一条约束和风应力造成的表层辐聚 / 辐散接上，才推得出内部一致的那支斯维尔德鲁普输送——它不是「风把水吹过去」，而是水柱为了守住位涡被迫南北移动。</p>
             </div>
           </div>
+          <div class="blk"><h3>当时没懂 → 后来想通</h3>
+            <div class="qa">
+              <p class="qa-q"><span class="qa-tag">当时没懂</span>位涡守恒有的地方写成 f + ζ = 常数，有的地方又写成 (f + ζ)/H = 常数，到底要不要除以水深？</p>
+              <p class="qa-a"><span class="qa-tag">后来想通</span>两条只在 H 不变时等价：水柱厚度一定，两边同乘 H 就把分母约掉了，剩下绝对涡度守恒。但 Sverdrup 平衡里 H 恰恰在变——埃克曼抽吸让水柱拉伸或压扁，所以必须写 (f + ζ)/H；要是按 f + ζ 守恒，拉伸压缩对流动毫无影响，斯维尔德鲁普输送根本推不出来。</p>
+            </div>
+          </div>
           <p class="week-map">对应教材：第 7 章 · 图 7.13</p>
         </div>
       </details>
 
-      <details class="wk" id="w6">
-        <summary><span class="wk-no">第 6 周</span><span class="wk-t todo">主题 · 待补充</span></summary>
+      <details class="wk" id="w6" open>
+        <summary><span class="wk-no">第 6 周</span><span class="wk-t">波的基本特征与相速</span></summary>
         <div class="wk-body">
           <div class="blk"><h3>我学到了什么</h3>
-            <div class="slot">用你自己的话写 3–5 条。</div></div>
-          <p class="week-map">对应教材：<span class="todo">《书名待补充》第 __ 章 第 __ 节</span></p>
+            <ul>
+              <li>第一张图回答「什么是波」：扰动被拉回平衡位置却冲过了头，就形成波——所以必须有恢复力。</li>
+              <li>波把扰动从一处传到另一处（长距离传播），但水体本身没有显著整体移动（质量输运很小）。</li>
+              <li>波同时是能量的载体：能量随波传播——这也是它最「能干」的一项。</li>
+              <li>第二张图讲相速怎么定：色散关系 ω² = gk·tanh(kh)，相速 C = √[(g/k)·tanh(kh)]。</li>
+              <li>深水（h &gt; λ/2）：tanh 趋近 1，C = √(g/k)，只跟波长有关、与水深无关。</li>
+              <li>浅水（h &lt; λ/20）：tanh ≈ kh，C = √(gh)，只跟水深有关。</li>
+            </ul>
+            <p class="week-src">整理成表：<a href="#/i/waves">海洋波类型与四大特征</a></p>
+          </div>
+          <figure class="fig">
+            <img src="content/images/weekly/w6-wave-characteristics.jpeg" alt="波的特征四问" loading="lazy">
+            <figcaption>课件 · What are the characteristics of waves？（恢复力 / 长距离传播 / 少量质量输运 / 能量载体）</figcaption>
+          </figure>
+          <figure class="fig">
+            <img src="content/images/weekly/w6-phase-speed.jpeg" alt="相速的确定" loading="lazy">
+            <figcaption>课件 · 相速 C 的确定：色散关系与深水、浅水两种极限</figcaption>
+          </figure>
+          <p class="week-map">对应教材：第 7 章 · 波浪</p>
         </div>
       </details>
 
-      <details class="wk" id="w7">
-        <summary><span class="wk-no">第 7 周</span><span class="wk-t todo">主题 · 待补充</span></summary>
+      <details class="wk" id="w7" open>
+        <summary><span class="wk-no">第 7 周</span><span class="wk-t">罗斯贝波与波的类型</span></summary>
         <div class="wk-body">
           <div class="blk"><h3>我学到了什么</h3>
-            <div class="slot">用你自己的话写 3–5 条。</div></div>
-          <p class="week-map">对应教材：<span class="todo">《书名待补充》第 __ 章 第 __ 节</span></p>
+            <ul>
+              <li>大洋罗斯贝波：核心恢复力是地球自转的 β 效应，传播方向向西。</li>
+              <li>地形罗斯贝波：靠地形起伏带来的水深变化提供恢复力。</li>
+              <li>判断深水波还是浅水波，看 h 与 λ 的关系（h &gt; λ/2 为深水，h &lt; λ/20 为浅水），据此选不同的波速公式。</li>
+              <li>把各种波按四件事摆在一起对照：恢复力、传播距离、质量输运、能量传输。</li>
+            </ul>
+            <p class="week-src">34 类波的对照表：<a href="#/i/waves">海洋波类型与四大特征</a></p>
+          </div>
+          <p class="week-map">对应教材：第 7 章 · 波浪</p>
         </div>
       </details>
 
-      <details class="wk" id="w8">
-        <summary><span class="wk-no">第 8 周</span><span class="wk-t todo">主题 · 待补充</span></summary>
+      <details class="wk" id="w8" open>
+        <summary><span class="wk-no">第 8 周</span><span class="wk-t">内波，以及把课上的东西接到自己的研究上</span></summary>
         <div class="wk-body">
           <div class="blk"><h3>我学到了什么</h3>
-            <div class="slot">用你自己的话写 3–5 条。</div></div>
-          <p class="week-map">对应教材：<span class="todo">《书名待补充》第 __ 章 第 __ 节</span></p>
+            <ul>
+              <li>内波：发生在密度层结内部的波，界面起伏比海面波大得多。</li>
+              <li>找物理海洋与自己研究方向的交叉前沿，再挑一个合适的 session 去投。</li>
+              <li>我的方向是物理海洋 × 海洋生物（抗菌肽），打算投 EGU27 的微生物互作 session，并补上「环境梯度叙事」让它更贴 session。</li>
+              <li>工具上的收获：装了几个 agent skill，下载了做 PPT 的三个子技能，并生成了一个 HTML。</li>
+            </ul>
+          </div>
+          <p class="week-map">对应教材：待补充</p>
         </div>
       </details>
 
@@ -247,9 +285,9 @@
             <tr><td>第 3 周</td><td>EOF 主成分分析</td><td>第 6 章 · 数据分析方法</td></tr>
             <tr><td>第 4 周</td><td>从海水密度到地转流速</td><td>第 7 章 · 图 7.11</td></tr>
             <tr><td>第 5 周</td><td>Sverdrup 平衡、涡度守恒</td><td>第 7 章 · 图 7.13</td></tr>
-            <tr><td>第 6 周</td><td class="todo">待补充</td><td class="todo">待补充</td></tr>
-            <tr><td>第 7 周</td><td class="todo">待补充</td><td class="todo">待补充</td></tr>
-            <tr><td>第 8 周</td><td class="todo">待补充</td><td class="todo">待补充</td></tr>
+            <tr><td>第 6 周</td><td>波的基本特征与相速</td><td>第 7 章 · 波浪</td></tr>
+            <tr><td>第 7 周</td><td>罗斯贝波与波类型</td><td>第 7 章 · 波浪</td></tr>
+            <tr><td>第 8 周</td><td>内波与选题</td><td>待补充</td></tr>
           </tbody>
         </table>
       </div>
@@ -293,9 +331,9 @@
     <div class="c-sub">
       <h3 class="c-sub-title">四、教材 ↔ 课堂：一致、差异与补充</h3>
       <div class="cmp-grid">
-        <div class="cmp"><h3>一致</h3><div class="slot">课上讲的哪部分和教材完全对得上。</div></div>
-        <div class="cmp"><h3>差异</h3><div class="slot">老师讲法和书上写法不一样的地方，差在哪。</div></div>
-        <div class="cmp"><h3>补充</h3><div class="slot">课上多讲的、书上没写的，或反过来。</div></div>
+        <div class="cmp"><h3>一致</h3><div class="quote-text">第 7 章的波速公式、深水与浅水判据（h &gt; λ/2、h &lt; λ/20）和课上的推导一致；罗斯贝波「向西传播」也对应书上 β 效应那一节。</div></div>
+        <div class="cmp"><h3>差异</h3><div class="quote-text">书上按章节分别讲各类波；课上要求把它们并排成一张表（恢复力 / 传播距离 / 质量输运 / 能量传输），用同一组维度横着比较——这是课上多出来的组织方式。</div></div>
+        <div class="cmp"><h3>补充</h3><div class="quote-text">第八周的内波，课上只讲了「密度层结内部的波、界面起伏更大」这个层次，没有展开非线性内波；这部分书上写得更多。</div></div>
       </div>
     </div>
 
@@ -303,12 +341,12 @@
       <h3 class="c-sub-title">五、教材之外的延伸</h3>
       <p class="c-note">教材之外自己查的资料、文献或数据，写清楚它和教材这一节的关系。</p>
       <article class="quote-card">
-        <div class="cite">延伸 1 · <span class="todo">标题 / 作者 / 年份，或链接</span></div>
-        <div class="slot">这份资料补充或修正了教材的什么？和教材哪一章的关系是什么？</div>
+        <div class="cite">延伸 1 · <span>EGU27 微生物互作 session（会议投稿方向）</span></div>
+        <div class="quote-text">教材讲的是海水的物理过程，不会告诉你物理海洋怎么和海洋生物交叉。我去查了 EGU 的 session 设置，发现「微生物互作」这一类可以把物理过程（环境梯度、层结、混合）当作生态的物理背景来讲，于是定了这个投稿方向，并补了一段环境梯度叙事让摘要更贴 session。</div>
       </article>
       <article class="quote-card">
-        <div class="cite">延伸 2 · <span class="todo">标题 / 作者 / 年份，或链接</span></div>
-        <div class="slot">同上。</div>
+        <div class="cite">延伸 2 · <span>科研出图三件套（数据图 / 示意图 / Mermaid）</span></div>
+        <div class="quote-text">教材之外，我把做图这件事单独工具化了：下载了三个做 PPT 的子技能，用它们生成了一张 HTML 页面（见航路里的「科研技能包 · 三件套」）。这部分和教材内容没有直接关系，但让「把结果讲清楚」这一步可复用。</div>
       </article>
     </div>
 
@@ -422,21 +460,30 @@
           <p class="tk-link"><span class="todo">呼应：—</span></p>
         </article>
         <article class="tk">
-          <div class="tk-head"><span class="tk-no">第 6 周</span><span class="tk-q todo">问题：待补充</span></div>
-          <div class="slot">我的回答：……</div>
-          <p class="tk-link"><span class="todo">呼应：第 __ 周</span></p>
+          <div class="tk-head"><span class="tk-no">第 6 周</span></div>
+          <div class="tk-body">波的四问：为什么会有波（恢复力）、能不能传很远（长距离传播）、水本身走不走（质量输运很小）、能量传不传（能量载体）；再加相速公式与深水、浅水的判断。</div>
+          <p class="tk-link"><span class="todo">呼应：—</span></p>
         </article>
         <article class="tk">
-          <div class="tk-head"><span class="tk-no">第 7 周</span><span class="tk-q todo">问题：待补充</span></div>
-          <div class="slot">我的回答：……</div>
-          <p class="tk-link"><span class="todo">呼应：第 __ 周</span></p>
+          <div class="tk-head"><span class="tk-no">第 7 周</span></div>
+          <div class="tk-body">大洋罗斯贝波（β 效应、向西传播）、地形罗斯贝波、深水与浅水的判断、波速公式；把各种波按四大特征整理成 34 类对照表。</div>
+          <p class="tk-link">呼应：第 6 周（把四问做成了整张表）</p>
         </article>
         <article class="tk">
-          <div class="tk-head"><span class="tk-no">第 8 周</span><span class="tk-q todo">问题：待补充</span></div>
-          <div class="slot">我的回答：……</div>
-          <p class="tk-link"><span class="todo">呼应：第 __ 周</span></p>
+          <div class="tk-head"><span class="tk-no">第 8 周</span></div>
+          <div class="tk-body">内波；找物理海洋与自己方向的交叉前沿，定下投 EGU27 微生物互作 session 并补环境梯度叙事；下载 PPT 子技能、生成 HTML。</div>
+          <p class="tk-link"><span class="todo">呼应：—</span></p>
         </article>
       </div>
+    </div>
+
+    <div class="c-sub" id="about">
+      <h3 class="c-sub-title">关于本站 · 生成方式与数据来源</h3>
+      <p class="c-note">
+        本页的页面结构、排版、英文翻译与故事会视频，均由 AI（DeepSeek）生成；课程内容取自本人的课堂笔记与老师课件；
+        教材图来自《物理海洋学》（第六版）；海洋数据来自 NASA MUR SST（JPL/PO.DAAC，经 NOAA CoastWatch ERDDAP 获取）。
+      </p>
+      <p class="c-note">AI 生成的部分已由本人逐条核对，若有错误由本人负责。</p>
     </div>
 
     <p class="c-foot">八周课程 · 8 次出门票 · 课堂笔记与教材对照 · 最近更新 2026-10-15</p>

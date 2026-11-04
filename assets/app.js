@@ -529,15 +529,7 @@
     return out.slice(0, 4);
   }
 
-  function featuredHTML() {
-    var list = featuredItems();
-    if (!list.length) return '';
-    return '<section class="featured">' +
-      '<div class="sec-head"><h2>从这里开始</h2><span class="line"></span></div>' +
-      '<div class="grid">' + list.map(function (it, i) {
-        return featuredCard(it, i + 1);
-      }).join('') + '</div></section>';
-  }
+
 
   function featuredCard(it, n) {
     var img = it.type === 'image' ? it.path : it.cover;
@@ -808,7 +800,7 @@
       // 三段式：筛选状态下不再显示宣言与精选，避免干扰
       var prefix = filtering
         ? ''
-        : (heroHTML() + featuredHTML() + navHTML(f) + search + body);
+        : (heroHTML() + navHTML(f) + search + body);
       var html = filtering ? (search + body) : prefix;
       $('#app').innerHTML = html;
 

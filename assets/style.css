@@ -1220,3 +1220,10 @@ table.map td { color: var(--text-2); }
 /* 英文模式下由 CSS 生成的中文标签 */
 html[data-lang="en"] .wk > summary::after { content: "Open +"; }
 html[data-lang="en"] .wk[open] > summary::after { content: "Close -"; }
+/* AI 生成声明（顶部一行） */
+.ai-note {
+  margin: 0 0 18px; padding: 8px 14px;
+  font-size: 12px; line-height: 1.7; color: var(--muted);
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  border-left: 2px solid var(--border-2); border-radius: 4px;
+}

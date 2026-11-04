@@ -68,6 +68,30 @@
       "summary": "从密度结构、比容异常与动力高度，一步步理解海面坡度如何联系到地转流速；附互动方向判断与小测。",
       "path": "content/pages/ocean-density-geostrophic.html",
       "pin": 3
+    },
+    {
+      "id": "waves",
+      "type": "page",
+      "title": "海洋波类型与四大特征",
+      "date": "2026-11-04",
+      "tags": [
+        "海洋物理",
+        "波浪"
+      ],
+      "summary": "把 34 类波按恢复力与生成机制归类，逐条对照四个基本特征：恢复力、长距离传播、质量输运、能量传输；附原始 xlsx 下载。",
+      "path": "content/pages/waves.html"
+    },
+    {
+      "id": "skills-bundle",
+      "type": "page",
+      "title": "科研技能包 · 三件套（数据图 / 示意图 / Mermaid）",
+      "date": "2026-11-04",
+      "tags": [
+        "工具",
+        "科研绘图"
+      ],
+      "summary": "一套可复用的科研出图工具包：数据图、示意图与 Mermaid 流程图的模板和做法。",
+      "path": "content/pages/skills-bundle.html"
     }
   ]
 }
