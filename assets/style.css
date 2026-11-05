@@ -1227,3 +1227,11 @@ html[data-lang="en"] .wk[open] > summary::after { content: "Close -"; }
   background: color-mix(in srgb, var(--surface-2) 60%, transparent);
   border-left: 2px solid var(--border-2); border-radius: 4px;
 }
+/* 教材下载的版权警示 */
+.dl-warn {
+  margin-top: 8px; padding: 8px 12px;
+  color: var(--danger); font-size: 12.5px; line-height: 1.75;
+  border-left: 2px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+  border-radius: 0 4px 4px 0;
+}

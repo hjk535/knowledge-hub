@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EOF 主成分分析</title>
+<meta name="description" content="EOF 主成分分析交互演示：合成数据检验方法，NOAA TAO 赤道海温实测复现厄尔尼诺；可调模态强度、查看方差贡献与前 k 阶重建。">
+<meta property="og:title" content="EOF 主成分分析">
+<meta property="og:description" content="用合成数据与真实 TAO 海温，看 EOF 如何把场拆成空间型与时间系数。">
 <style>
   :root{
     --bg:#fbfbfa; --card:#fff; --ink:#18181b; --ink2:#52525b; --muted:#8b8b93;
@@ -61,6 +64,11 @@
   .fig{background:var(--fig);border:1px solid var(--line);border-radius:12px;padding:12px;overflow:hidden}
   canvas{display:block;width:100%}
   .axis{display:flex;justify-content:space-between;font-size:11px;color:#9a9a94;margin-top:6px;font-family:var(--mono)}
+  .cbar{display:flex;align-items:center;gap:8px;margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .cbar .bar2{flex:1;height:8px;border-radius:4px;border:1px solid var(--line);
+    background:linear-gradient(90deg,rgb(42,92,158) 0%,rgb(246,246,244) 50%,rgb(176,58,44) 100%)}
+  .cbar .lab{min-width:64px}
+  .cbar .lab.r{text-align:right}
 
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media(max-width:720px){.grid2{grid-template-columns:1fr}}
@@ -103,16 +111,17 @@
   <div class="src" id="src"></div>
 
   <div class="panel" id="synPanel">
-    <div class="ctl">模态一 <input type="range" id="s-a1" min="0" max="100" value="50"><output id="o-a1"></output></div>
-    <div class="ctl">模态二 <input type="range" id="s-a2" min="0" max="100" value="36"><output id="o-a2"></output></div>
-    <div class="ctl">噪声 <input type="range" id="s-nz" min="0" max="100" value="12"><output id="o-nz"></output></div>
+    <div class="ctl">模态一 <input type="range" id="s-a1" aria-label="第一模态强度" min="0" max="100" value="50"><output id="o-a1"></output></div>
+    <div class="ctl">模态二 <input type="range" id="s-a2" aria-label="第二模态强度" min="0" max="100" value="36"><output id="o-a2"></output></div>
+    <div class="ctl">噪声 <input type="range" id="s-nz" aria-label="噪声强度" min="0" max="100" value="12"><output id="o-nz"></output></div>
     <div class="spacer"></div>
     <button class="act" id="btn-new">换一组</button>
   </div>
 
   <section>
     <div class="st">原始场 <span id="rawLab">X(t, x)</span></div>
-    <div class="fig"><canvas id="c-raw" height="300"></canvas></div>
+    <div class="fig"><canvas id="c-raw" height="300" role="img" aria-label="原始场热图：横轴为空间位置，纵轴为时间，颜色表示相对均值的距平"></canvas></div>
+    <div class="cbar"><span class="lab" id="cbar-lo">—</span><span class="bar2"></span><span class="lab r" id="cbar-hi">—</span></div>
     <div class="axis"><span id="axL"></span><span id="axR"></span></div>
   </section>
 
@@ -127,10 +136,10 @@
   <section>
     <div class="st">重建 <span>用前 k 阶还原</span></div>
     <div class="kbar">
-      <div class="ctl">阶数 k <input type="range" id="s-k" min="1" max="5" value="2"><output id="o-k"></output></div>
+      <div class="ctl">阶数 k <input type="range" id="s-k" aria-label="重建阶数" min="1" max="5" value="2"><output id="o-k"></output></div>
       <div class="res">残差方差 <b id="resid">—</b></div>
     </div>
-    <div class="fig"><canvas id="c-rec" height="300"></canvas></div>
+    <div class="fig"><canvas id="c-rec" height="300" role="img" aria-label="用前 k 阶 EOF 重建的场"></canvas></div>
   </section>
 
   <ul class="pts" id="pts"></ul>
@@ -395,8 +404,17 @@ var TAO = {"source":"NOAA/PMEL TAO/TRITON 阵列 · 月平均海温（1 m）","p
     var nx = X[0].length, nt = X.length;
 
     var rawC = document.getElementById('c-raw');
+
     if (rawMax === null) rawMax = heat(rawC, X, null, rawCenter);
     else heat(rawC, X, rawMax, rawCenter);
+
+    /* 颜色条刻度：与热图用同一个 rawMax */
+    var loEl = document.getElementById('cbar-lo'), hiEl = document.getElementById('cbar-hi');
+    if (loEl && hiEl){
+      var u = (mode === 'tao') ? ' ℃' : '';
+      loEl.textContent = '−' + rawMax.toFixed(2) + u;
+      hiEl.textContent = '+' + rawMax.toFixed(2) + u;
+    }
 
     var bars='';
     for (k=0;k<Math.min(5,SOL.modes.length);k++){
@@ -476,7 +494,9 @@ var TAO = {"source":"NOAA/PMEL TAO/TRITON 阵列 · 月平均海温（1 m）","p
         '即赤道中东太平洋一致增暖 —— 这是典型的厄尔尼诺型。</li>' +
         '<li><b>PC1 就是 ENSO 指数</b>：正位相为厄尔尼诺，负位相为拉尼娜，与业务 ONI 指数高度一致。</li>' +
         '<li><b>EOF2 占约 16%</b>：东西反向的偶极结构，反映暖池边缘位移与 ENSO 位相转换。</li>' +
-        '<li>前两阶合计约 79%，其余归入噪声。EOF 按方差降序排列，编号与物理机制无关。</li>';
+        '<li>前两阶合计约 79%，其余归入噪声。EOF 按方差降序排列，编号与物理机制无关。</li>' +
+        '<li><b>符号约定</b>：EOF 整体乘 −1 不改变方差贡献，符号本身任意；'
+        '本页统一让每个模态在绝对值最大处为正，因此 PC1 为正对应厄尔尼诺、为负对应拉尼娜。</li>';
     } else {
       document.getElementById('src').innerHTML =
         '合成数据：真实模态为两个正交的正弦 <code>sin(πx)</code> 与 <code>sin(2πx)</code>，' +
@@ -486,7 +506,9 @@ var TAO = {"source":"NOAA/PMEL TAO/TRITON 阵列 · 月平均海温（1 m）","p
         '<li><b>EOF</b> 是协方差矩阵的特征向量，代表场在空间上的典型分布形态。</li>' +
         '<li><b>PC</b> 是相应特征向量上的投影系数，表示这个形态在不同时刻的强弱与正负。</li>' +
         '<li><b>方差贡献</b> 即特征值占比。EOF 按方差降序排列，<b>编号与物理机制无关</b> —— 把某个模态调强，它就会升为第一阶。</li>' +
-        '<li>取前几阶即可抓住主要信号，其余归入噪声。</li>';
+        '<li>取前几阶即可抓住主要信号，其余归入噪声。</li>' +
+        '<li><b>符号约定</b>：EOF 整体乘 −1 不改变方差贡献，符号本身是任意的；'
+        '本页统一让每个模态在绝对值最大处为正，PC 的正负也随之确定。</li>';
     }
     render();
   }
